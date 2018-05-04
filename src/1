@@ -1,0 +1,18 @@
+#include "layer.h"
+
+int layer4_feedforward(input_patterns ip)
+{
+    /* spatial pooling procedure. compute the inference
+       (aka overlap score) for each column. This is a
+       linear summation of active, feedforward input bits
+       plus a boost value. The columns with the highest
+       overlap with perform an inhibition function to
+       prevent neighboring columns within a certain
+       radius from becoming active. The columns learn to
+       map spatially similar input patterns to the same
+       or a similar set of active columns. */
+    spatial_pooler(ip.sensory_pattern);
+
+    return 0;
+}
+
