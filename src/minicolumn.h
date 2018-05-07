@@ -5,7 +5,7 @@ struct minicolumn
 {
     float boost;
     struct cell *cells;
-    struct synapse **proximal_dendrite_segment;
+    struct synapse *proximal_dendrite_segment;
     unsigned int num_synapses;
 };
 

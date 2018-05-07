@@ -1,14 +1,15 @@
 #include <stdlib.h>
 #include "minicolumn.h"
+#include "synapse.h"
 
 int alloc_minicolumn_synapses(
     struct minicolumn *minicolumn
 ) {
-    struct synapse **syns=NULL;
+    struct synapse *syns=NULL;
 
-    syns = (struct synapse **)calloc(
+    syns = (struct synapse *)calloc(
         minicolumn->num_synapses,
-        sizeof(struct synapse *));
+        sizeof(struct synapse));
     if (!syns)
         return 1;
 
