@@ -31,6 +31,8 @@ int init_htm (codec_cb cb)
         fprintf(stderr, "failed to call codec\n");
         return 1;
     }
+    /* L4 is the first input layer in the feedforward
+       circuit */
     if (init_minicol_receptive_flds(
             layer4,
             ip->sensory_pattern,
@@ -45,23 +47,13 @@ int init_htm (codec_cb cb)
 
 int process_subcortical_input (void)
 {
-    unsigned short nip;
-    register c;
-
-    /* bug could occur here if the struct is padded. i don't
-       think this should happen though. since the struct
-       members are word-aligned pointers, the compiler
-       shouldn't realign them. */
-    nip = sizeof(input_patterns) / sizeof(sdr_t);
-
-    for (c=0; c<nip; c++) {
-        if (((unsigned int)&ip + (sizeof(sdr_t)*c))==0) {
-            fprintf(stderr, "codec returned invalid input pattern\n");
-            return 1;
-        }
+    if (!layer4 || !ip) {
+        fprintf(stderr, "must init the htm first.\n");
+        return 1;
     }
 
-    layer4_feedforward();
+    if (layer4_feedforward(layer4)>0)
+        return 1;
 
     return 0;
 }

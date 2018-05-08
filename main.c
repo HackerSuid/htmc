@@ -2,6 +2,7 @@
 
 input_patterns* test(void)
 {
+    return (struct input_patterns *)0;
 }
 
 int main()

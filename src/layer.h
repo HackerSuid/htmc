@@ -9,6 +9,7 @@ struct layer
     struct minicolumn ***minicolumns;
     unsigned int height;
     unsigned int width;
+    unsigned int inhibition_radius;
 };
 
 struct layer* alloc_layer4(struct layer4_conf conf);
@@ -18,7 +19,7 @@ int init_minicol_receptive_flds(
     pattern_sz input_sz,
     float rec_fld_sz
 );
-int layer4_feedforward(void);
+int layer4_feedforward(struct layer *layer);
 
 #endif
 

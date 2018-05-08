@@ -85,6 +85,8 @@ int init_minicol_receptive_flds(
                     input_sz.width/layer->width/2;
             ycent = y*(input_sz.height/layer->height) +
                     input_sz.height/layer->height/2;
+            layer->minicolumns[y][x]->input_xcent = xcent;
+            layer->minicolumns[y][x]->input_ycent = ycent;
 
             /* compute number of synapses */
             maxx = xcent+rec_fld_num_x>=input_sz.width?
@@ -121,23 +123,64 @@ int init_minicol_receptive_flds(
     return 0;
 }
 
-int layer4_feedforward()
+int layer4_feedforward(struct layer *layer)
 {
     /* spatial pooling procedure. compute the inference
        (aka overlap score) for each column. This is a
        linear summation of active, feedforward input bits
        plus a boost value. The columns with the highest
-       overlap with perform an inhibition function to
+       overlap perform an inhibition function to
        prevent neighboring columns within a certain
        radius from becoming active. The columns learn to
        map spatially similar input patterns to the same
        or a similar set of active columns. */
-    spatial_pooler();
+    spatial_pooler(layer);
 
     return 0;
 }
 
-int spatial_pooler()
+int spatial_pooler(struct layer *layer)
 {
+    /* compute the inhibition radius used by each minicolumn.
+       this is derived from the average connected receptive
+       field radius. */
+    compute_layer_inhib_rad(layer);
+
+    /* Compute the overlap score of each column, which may be competitively
+       boosted. Column activations are boosted when a column does not become
+       active often enough and falls below the minimum threshold. This will
+       happen if the overlap exceeds the minimum to fire but isn't strong
+       enough to ever avoid being inhibited, or its synapses never become
+       connected even though there may be enough activity within its receptive
+       field. The purpose of boosting is to cause all the columns to compete
+       in representing a pattern, which in turn creates redundancy in the event
+       that columns need to adjust their receptive fields. More importantly,
+       it guarantees that "poor, starved" columns will get to represent at
+       least some patterns so that "greedy" columns can't try to represent too
+       many. */
+
+    /* Inhibit the neighbors of the columns which received the highest level of
+       feedforward activation. */
+
+    /* Update boosting parameters if htm is learning. */
+}
+
+int compute_layer_inhib_rad(struct layer *layer)
+{
+    register x, y;
+
+    layer->inhibition_radius = 0;
+
+    for (y=0; y<layer->height; y++) {
+        for (x=0; x<layer->width; x++) {
+            layer->inhibition_radius += compute_minicolumn_inhib_rad(
+                *(*(layer->minicolumns+y)+x)
+            );
+        }
+    }
+    layer->inhibition_radius /=
+        (layer->height*layer->width);
+
+    return 0;
 }
 
