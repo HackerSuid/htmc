@@ -3,6 +3,7 @@
 
 struct minicolumn
 {
+    unsigned int overlap;
     float boost;
     struct cell *cells;
     struct synapse *proximal_dendrite_segment;

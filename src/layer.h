@@ -15,9 +15,9 @@ struct layer
 struct layer* alloc_layer4(struct layer4_conf conf);
 int init_minicol_receptive_flds(
     struct layer *layer,
-    sdr_t *input,
+    sdr_t input,
     pattern_sz input_sz,
-    float rec_fld_sz
+    float rec_fld_perc
 );
 int layer4_feedforward(struct layer *layer);
 

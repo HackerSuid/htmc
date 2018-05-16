@@ -15,6 +15,7 @@ struct layer *layer4;
 
 int init_htm (codec_cb cb)
 {
+    int x, y;
     if (parse_htm_conf())
         return 1;
 

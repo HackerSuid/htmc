@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "minicolumn.h"
 #include "synapse.h"
@@ -24,7 +25,8 @@ unsigned int compute_minicolumn_inhib_rad(
 {
     register s;
     struct synapse *synptr = mc->proximal_dendrite_segment;
-    unsigned int avgdist=0, scnt=0;
+    float avgdist=0;
+    unsigned int scnt=0;
     /* 32bit signed representations for distance formula */
     signed int x1, x2, y1, y2;
 
@@ -40,6 +42,8 @@ unsigned int compute_minicolumn_inhib_rad(
         synptr++;
     }
     /* this could theoretically return 0 */
-    return avgdist/scnt;
+    /*printf("%f/%u=%u\n",
+        avgdist, scnt, (unsigned int)(avgdist/scnt));*/
+    return (unsigned int)(avgdist/scnt);
 }
 

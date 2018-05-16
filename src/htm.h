@@ -24,8 +24,8 @@ typedef struct
 
 typedef struct
 {
-    sdr_t *sensory_pattern;
-    sdr_t *location_pattern;
+    sdr_t sensory_pattern;
+    sdr_t location_pattern;
     pattern_sz sensory_sz;
     pattern_sz location_sz;
 } input_patterns;

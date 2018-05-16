@@ -9,7 +9,7 @@
 struct synapse
 {
     float perm;
-    char *source;
+    char source;
     unsigned int srcx, srcy;
 };    
 
