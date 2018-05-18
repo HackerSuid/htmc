@@ -4,16 +4,24 @@
 #include "layer.h"
 #include "minicolumn.h"
 #include "synapse.h"
+#include "threads.h"
 
 #define NUM_THREADS 4
 
 /* TODO: get number of cpu cores */
 pthread_t threads[NUM_THREADS];
+/* bitmask to store number of minicolumn rows per thread */
+unsigned int rows_thread_bitmask;
+/* stores mask of bits for max rows at number of threads */
+unsigned int max_rows_mask;
+/* argument structure passed to the threads */
+struct thread_data td[NUM_THREADS];
 
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
     struct layer *layer;
-    register x, y;
+    unsigned int rem_rows;
+    register t, x, y;
 
     layer = (struct layer *)calloc(
         1, sizeof(struct layer));
@@ -52,6 +60,51 @@ struct layer* alloc_layer4(struct layer4_conf conf)
 
     layer->height = conf.height;
     layer->width = conf.width;
+
+    /* partition minicolumns between multiple threads.
+
+       with 4 threads, a 32 bit mask can encode each
+       threads assigned rows in 8 bits, which limits the
+       count to 0xff (255).
+
+       8 threads would have 4 bits each, 0xf (15) rows
+       max. */
+
+    /* this does not always equal zero because it is integer
+       math. */
+    rem_rows =
+        layer->height-layer->height/NUM_THREADS*NUM_THREADS;
+    max_rows_mask =
+        UINT_MAX >> (sizeof(unsigned int)*8-
+            ((unsigned int)(((float)
+                sizeof(unsigned int)/NUM_THREADS)*8)));
+
+    /* rows per thread vs max allowed in bitmask */
+    if (layer->height/NUM_THREADS+rem_rows > max_rows_mask) {
+        fprintf(stderr, "%d threads not supported "
+                        "for %u rows\n",
+                NUM_THREADS, layer->height);
+        return NULL;
+    }
+
+    /* set the bitmask of minicolumn rows for each thread */
+    for (t=0; t<NUM_THREADS; t++) {
+        /* the remainder rows are added to thread 0 */
+        rows_thread_bitmask |=
+            (layer->height/NUM_THREADS+(!t?rem_rows:0)) <<
+                t * ((unsigned int)(
+                    ((float)sizeof(unsigned int)/NUM_THREADS)*8));
+    }
+    for (t=0; t<NUM_THREADS; t++) {
+        td[t].minicolumns = layer->minicolumns;
+        td[t].row_num = 
+            max_rows_mask & (rows_thread_bitmask >> t * ((unsigned int)(
+                ((float)sizeof(unsigned int)/NUM_THREADS)*8)));
+        td[t].row_width = layer->width;
+
+        td[t].row_start =
+            t ? td[t-1].row_start + td[t-1].row_num : 0;
+    }
 
     return layer;
 }
@@ -135,41 +188,6 @@ int init_minicol_receptive_flds(
 
 int layer4_feedforward(struct layer *layer)
 {
-    /* with 4 threads, a 32 bit mask can encode each
-       threads assigned rows in 8 bits, which limits the
-       count to 0xff (255).
-
-       8 threads would have 4 bits each, 0xf (15) rows
-       max. */
-    unsigned int rows_thread_bitmask;
-    unsigned rem_rows, max_rows;
-    register t;
-
-    /* this does not always equal zero because it is integer
-       math. */
-    rem_rows =
-        layer->height-layer->height/NUM_THREADS*NUM_THREADS;
-    max_rows =
-        UINT_MAX >> (sizeof(unsigned int)*8-
-            ((unsigned int)(((float)
-                sizeof(unsigned int)/NUM_THREADS)*8)));
-
-    /* rows per thread vs max allowed in bitmask */
-    if (layer->height/NUM_THREADS+rem_rows > max_rows) {
-        fprintf(stderr, "%d threads not supported "
-                        "for %u rows\n",
-                NUM_THREADS, layer->height);
-        return 1;
-    }
-
-    rows_thread_bitmask = 0;
-    for (t=0; t<NUM_THREADS; t++) {
-        rows_thread_bitmask |=
-            (layer->height/NUM_THREADS+(!t?rem_rows:0)) <<
-                t * ((unsigned int)(
-                    ((float)sizeof(unsigned int)/NUM_THREADS)*8));
-    }
-
     /* spatial pooling procedure. compute the inference
        (aka overlap score) for each column. This is a
        linear summation of active, feedforward input bits
@@ -186,10 +204,13 @@ int layer4_feedforward(struct layer *layer)
 
 int spatial_pooler(struct layer *layer)
 {
+    register t;
     /* compute the inhibition radius used by each minicolumn.
        this is derived from the average connected receptive
        field radius. */
-    compute_layer_inhib_rad(layer);
+    for (t=0; t<NUM_THREADS; t++) {
+        /*compute_layer_inhib_rad(layer);*/
+    }
     printf("%u\n", layer->inhibition_radius);
 
     /* Compute the overlap score of each minicolumn. Minicolumn activations
@@ -216,21 +237,23 @@ int compute_overlaps(struct layer *layer)
     return 0;
 }
 
-int compute_layer_inhib_rad(struct layer *layer)
+int compute_layer_inhib_rad(void *thread_data)
 {
     register x, y;
 
-    layer->inhibition_radius = 0;
+    struct thread_data *td = (struct thread_data *)thread_data;
 
-    for (y=0; y<layer->height; y++) {
-        for (x=0; x<layer->width; x++) {
-            layer->inhibition_radius += compute_minicolumn_inhib_rad(
-                *(*(layer->minicolumns+y)+x)
+    td->inhibition_radius = 0;
+
+    for (y=td->row_start; y<td->row_num; y++) {
+        for (x=0; x<td->row_width; x++) {
+            td->inhibition_radius += compute_minicolumn_inhib_rad(
+                *(*(td->minicolumns+y)+x)
             );
         }
     }
-    layer->inhibition_radius /=
-        (layer->height*layer->width);
+    td->inhibition_radius /=
+        (td->row_num*td->row_width);
 
     return 0;
 }

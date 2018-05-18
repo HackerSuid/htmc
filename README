@@ -1,1 +1,5 @@
-An implementation of HTM in ISO standard compliant C.
+A multithreaded implementation of HTM in ISO standard compliant C.
+
+Libraries and APIs:
+libxml2
+pthreads
