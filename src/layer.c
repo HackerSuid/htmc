@@ -20,6 +20,7 @@ struct thread_data td[NUM_THREADS];
 pthread_attr_t threadattr;
 
 void* compute_layer_inhib_rad(void *thread_data);
+void* compute_overlaps(void *thread_data);
 
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
@@ -243,7 +244,7 @@ int spatial_pooler(struct layer *layer)
         layer->inhibition_radius += td[t].inhibition_radius;
     layer->inhibition_radius /= NUM_THREADS;
 
-    printf("%u\n", layer->inhibition_radius);
+    printf("Overall inhibition radius: %u\n", layer->inhibition_radius);
 
     /* Compute the overlap score of each minicolumn. Minicolumn activations
        are "boosted" when they do not become active often enough and fall
@@ -256,17 +257,32 @@ int spatial_pooler(struct layer *layer)
        to adjust their receptive fields. More importantly, it guarantees that
        "poor, starved" minicolumns will get to represent at least some
        patterns so that "greedy" minicolumns cannot represent too many. */
-    compute_overlaps(layer);
+    for (t=0; t<NUM_THREADS; t++) {
+        rc = pthread_create(
+            &threads[t],
+            &threadattr,
+            compute_overlaps,
+            (void *)&td[t]);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d creation failed: %d\n",
+                t, rc);
+            return 1;
+        }
+    }
+    for (t=0; t<NUM_THREADS; t++) {
+        rc = pthread_join(threads[t], NULL);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d join failed: %d\n",
+                t, rc);
+            return 1;
+        }
+    }
 
     /* Inhibit the neighbors of the columns which received the highest level of
        feedforward activation. */
 
     /* Update boosting parameters if htm is learning. */
-}
-
-int compute_overlaps(struct layer *layer)
-{
-    return 0;
+    pthread_exit(NULL);
 }
 
 void* compute_layer_inhib_rad(void *thread_data)
@@ -286,5 +302,31 @@ void* compute_layer_inhib_rad(void *thread_data)
     }
     td->inhibition_radius /=
         (td->row_num*td->row_width);
+}
+
+void* compute_overlaps(void *thread_data)
+{
+    register x, y, s;
+    struct synapse *synptr = NULL;
+    unsigned int num_syns;
+
+    struct thread_data *td = (struct thread_data *)thread_data;
+
+    /* compute the raw overlap score */
+    for (y=td->row_start; y<td->row_start+td->row_num; y++) {
+        for (x=0; x<td->row_width; x++) {
+            num_syns = (*(*(td->minicolumns+y)+x))->num_synapses;
+            synptr = (*(*(td->minicolumns+y)+x))->proximal_dendrite_segment;
+            for (s=0; s<num_syns; s++) {
+                if (synptr->perm >= CONNECTED_PERM &&
+                    synptr->source == 1)
+                    (*(*(td->minicolumns+y)+x))->overlap++;
+                synptr++;
+            }
+            /* reset to zero if it doesn't reach the minimum complexity
+               requirement */
+        }
+    }
+
 }
 
