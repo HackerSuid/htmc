@@ -17,6 +17,10 @@ unsigned int max_rows_mask;
 /* argument structure passed to the threads */
 struct thread_data td[NUM_THREADS];
 
+pthread_attr_t threadattr;
+
+void* compute_layer_inhib_rad(void *thread_data);
+
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
     struct layer *layer;
@@ -95,6 +99,7 @@ struct layer* alloc_layer4(struct layer4_conf conf)
                 t * ((unsigned int)(
                     ((float)sizeof(unsigned int)/NUM_THREADS)*8));
     }
+    /* set the attributes of thread structures */
     for (t=0; t<NUM_THREADS; t++) {
         td[t].minicolumns = layer->minicolumns;
         td[t].row_num = 
@@ -105,6 +110,10 @@ struct layer* alloc_layer4(struct layer4_conf conf)
         td[t].row_start =
             t ? td[t-1].row_start + td[t-1].row_num : 0;
     }
+
+    /* set the attribute to explicitly make threads joinable */
+    pthread_attr_init(&threadattr);
+    pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
     return layer;
 }
@@ -205,12 +214,35 @@ int layer4_feedforward(struct layer *layer)
 int spatial_pooler(struct layer *layer)
 {
     register t;
+    int rc;
+
     /* compute the inhibition radius used by each minicolumn.
        this is derived from the average connected receptive
        field radius. */
     for (t=0; t<NUM_THREADS; t++) {
-        /*compute_layer_inhib_rad(layer);*/
+        rc = pthread_create(
+            &threads[t],
+            &threadattr,
+            compute_layer_inhib_rad,
+            (void *)&td[t]);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d creation failed: %d\n",
+                t, rc);
+            return 1;
+        }
     }
+    for (t=0; t<NUM_THREADS; t++) {
+        rc = pthread_join(threads[t], NULL);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d join failed: %d\n",
+                t, rc);
+            return 1;
+        }
+    }
+    for (t=0; t<NUM_THREADS; t++)
+        layer->inhibition_radius += td[t].inhibition_radius;
+    layer->inhibition_radius /= NUM_THREADS;
+
     printf("%u\n", layer->inhibition_radius);
 
     /* Compute the overlap score of each minicolumn. Minicolumn activations
@@ -237,7 +269,7 @@ int compute_overlaps(struct layer *layer)
     return 0;
 }
 
-int compute_layer_inhib_rad(void *thread_data)
+void* compute_layer_inhib_rad(void *thread_data)
 {
     register x, y;
 
@@ -245,7 +277,7 @@ int compute_layer_inhib_rad(void *thread_data)
 
     td->inhibition_radius = 0;
 
-    for (y=td->row_start; y<td->row_num; y++) {
+    for (y=td->row_start; y<td->row_start+td->row_num; y++) {
         for (x=0; x<td->row_width; x++) {
             td->inhibition_radius += compute_minicolumn_inhib_rad(
                 *(*(td->minicolumns+y)+x)
@@ -254,7 +286,5 @@ int compute_layer_inhib_rad(void *thread_data)
     }
     td->inhibition_radius /=
         (td->row_num*td->row_width);
-
-    return 0;
 }
 
