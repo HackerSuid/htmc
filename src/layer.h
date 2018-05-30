@@ -13,6 +13,7 @@ struct layer
 };
 
 struct layer* alloc_layer4(struct layer4_conf conf);
+int free_layer4(struct layer *layer);
 int init_minicol_receptive_flds(
     struct layer *layer,
     sdr_t input,

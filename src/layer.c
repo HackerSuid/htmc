@@ -19,8 +19,20 @@ struct thread_data td[NUM_THREADS];
 
 pthread_attr_t threadattr;
 
+unsigned int layer4_width;
+unsigned int layer4_height;
+
 void* compute_layer_inhib_rad(void *thread_data);
 void* compute_overlaps(void *thread_data);
+void* activate_minicolumns(void *thread_data);
+thread_status_t update_minicolumn_neighbors(
+    struct minicolumn ***neighbors,
+    struct minicolumn ***mc,
+    unsigned int old_ir,
+    unsigned int new_ir,
+    unsigned int x,
+    unsigned int y
+);
 
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
@@ -65,6 +77,8 @@ struct layer* alloc_layer4(struct layer4_conf conf)
 
     layer->height = conf.height;
     layer->width = conf.width;
+    layer4_height = conf.height;
+    layer4_width = conf.width;
 
     /* partition minicolumns between multiple threads.
 
@@ -103,6 +117,7 @@ struct layer* alloc_layer4(struct layer4_conf conf)
     /* set the attributes of thread structures */
     for (t=0; t<NUM_THREADS; t++) {
         td[t].minicolumns = layer->minicolumns;
+        td[t].column_complexity = conf.colconf.column_complexity;
         td[t].row_num = 
             max_rows_mask & (rows_thread_bitmask >> t * ((unsigned int)(
                 ((float)sizeof(unsigned int)/NUM_THREADS)*8)));
@@ -110,6 +125,8 @@ struct layer* alloc_layer4(struct layer4_conf conf)
 
         td[t].row_start =
             t ? td[t-1].row_start + td[t-1].row_num : 0;
+
+        td[t].avg_inhib_rad = &layer->inhibition_radius;
     }
 
     /* set the attribute to explicitly make threads joinable */
@@ -117,6 +134,25 @@ struct layer* alloc_layer4(struct layer4_conf conf)
     pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
     return layer;
+}
+
+int free_layer4(struct layer *layer)
+{
+    register x, y;
+
+    /* free the layer's minicolumns */
+    for (y=0; y<layer->height; y++) {
+        for (x=0; x<layer->width; x++) {
+            free_dendrite(
+                (*(*(layer->minicolumns+y)+x))->proximal_dendrite_segment
+            );
+            free(*(*(layer->minicolumns+y)+x));
+        }
+        free(*(layer->minicolumns+y));
+    }
+
+    /* free the layer */
+    free(layer);
 }
 
 int init_minicol_receptive_flds(
@@ -160,11 +196,11 @@ int init_minicol_receptive_flds(
 
             /* compute number of synapses */
             maxx = xcent+sqr >= input_sz.width?
-                input_sz.width-1 : xcent+sqr;
+                input_sz.width - 1 : xcent+sqr;
             maxy = ycent+sqr >= input_sz.height?
-                input_sz.height-1 : ycent+sqr;
-            minx = xcent < sqr ? 0 : xcent-sqr;
-            miny = ycent < sqr ? 0 : ycent-sqr;
+                input_sz.height - 1 : ycent + sqr;
+            minx = xcent < sqr ? 0 : xcent - sqr;
+            miny = ycent < sqr ? 0 : ycent - sqr;
 
             (*(*(layer->minicolumns+y)+x))->num_synapses =
                 (maxx-minx)*(maxy-miny);
@@ -190,6 +226,8 @@ int init_minicol_receptive_flds(
                     synptr++;
                 }
             }
+            /* set the initial boost value */
+            (*(*(layer->minicolumns+y)+x))->boost = 1.0;
         }
     }
 
@@ -221,6 +259,7 @@ int spatial_pooler(struct layer *layer)
        this is derived from the average connected receptive
        field radius. */
     for (t=0; t<NUM_THREADS; t++) {
+        td[t].old_avg_inhib_rad = *td[t].avg_inhib_rad;
         rc = pthread_create(
             &threads[t],
             &threadattr,
@@ -235,11 +274,13 @@ int spatial_pooler(struct layer *layer)
     for (t=0; t<NUM_THREADS; t++) {
         rc = pthread_join(threads[t], NULL);
         if (rc != 0) {
-            fprintf(stderr, "Thread %d join failed: %d\n",
+            fprintf(stderr, "Thread %d join failed during inhibition "
+                "radius computation: %d\n",
                 t, rc);
             return 1;
         }
     }
+
     for (t=0; t<NUM_THREADS; t++)
         layer->inhibition_radius += td[t].inhibition_radius;
     layer->inhibition_radius /= NUM_THREADS;
@@ -272,7 +313,8 @@ int spatial_pooler(struct layer *layer)
     for (t=0; t<NUM_THREADS; t++) {
         rc = pthread_join(threads[t], NULL);
         if (rc != 0) {
-            fprintf(stderr, "Thread %d join failed: %d\n",
+            fprintf(stderr, "Thread %d join failed during overlap "
+                "computation: %d\n",
                 t, rc);
             return 1;
         }
@@ -280,9 +322,38 @@ int spatial_pooler(struct layer *layer)
 
     /* Inhibit the neighbors of the columns which received the highest level of
        feedforward activation. */
+    for (t=0; t<NUM_THREADS; t++) {
+        rc = pthread_create(
+            &threads[t],
+            &threadattr,
+            activate_minicolumns,
+            (void *)&td[t]);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d creation failed: %d\n",
+                t, rc);
+            return 1;
+        }
+    }
+    for (t=0; t<NUM_THREADS; t++) {
+        rc = pthread_join(threads[t], NULL);
+        if (rc != 0) {
+            fprintf(stderr, "Thread %d join failed during nneighbor "
+                "activation: %d\n", t, rc);
+            return 1;
+        }
+    }
+    for (t=0; t<NUM_THREADS; t++) {
+        if (td[t].exit_status != THREAD_SUCCESS) {
+            fprintf(stderr, "Thread %d returned an error during "
+                "neighbors activations: %d\n",
+                t, td[t].exit_status);
+            return 1;
+        }
+    }
 
     /* Update boosting parameters if htm is learning. */
     pthread_exit(NULL);
+    return 0;
 }
 
 void* compute_layer_inhib_rad(void *thread_data)
@@ -312,9 +383,9 @@ void* compute_overlaps(void *thread_data)
 
     struct thread_data *td = (struct thread_data *)thread_data;
 
-    /* compute the raw overlap score */
     for (y=td->row_start; y<td->row_start+td->row_num; y++) {
         for (x=0; x<td->row_width; x++) {
+            /* compute the raw overlap score */
             num_syns = (*(*(td->minicolumns+y)+x))->num_synapses;
             synptr = (*(*(td->minicolumns+y)+x))->proximal_dendrite_segment;
             for (s=0; s<num_syns; s++) {
@@ -323,10 +394,135 @@ void* compute_overlaps(void *thread_data)
                     (*(*(td->minicolumns+y)+x))->overlap++;
                 synptr++;
             }
+            /*printf("num_syns %u raw overlap %u ",
+                num_syns, (*(*(td->minicolumns+y)+x))->overlap);*/
             /* reset to zero if it doesn't reach the minimum complexity
-               requirement */
+               requirement, otherwise multiply by boost */
+            (*(*(td->minicolumns+y)+x))->overlap *=
+                (*(*(td->minicolumns+y)+x))->overlap >=
+                td->column_complexity * num_syns ?
+                (*(*(td->minicolumns+y)+x))->boost : 0;
+            /*printf("min compl %u boosted/zeroed overlap %u\n",
+               (unsigned int)(td->column_complexity * num_syns),
+                (*(*(td->minicolumns+y)+x))->overlap);*/
+        }
+    }
+}
+
+void* activate_minicolumns(void *thread_data)
+{
+    register x, y;
+    struct thread_data *td = (struct thread_data *)thread_data;
+    struct minicolumn **n = NULL;
+
+    /* update neighbors if necessary */
+    if (td->old_avg_inhib_rad != *td->avg_inhib_rad) {
+        for (y=td->row_start; y<td->row_start+td->row_num; y++) {
+            for (x=0; x<td->row_width; x++) {
+                if (update_minicolumn_neighbors(
+                    &(*(*(td->minicolumns+y)+x))->neighbors,
+                    td->minicolumns,
+                    td->old_avg_inhib_rad,
+                    *td->avg_inhib_rad,
+                    x, y
+                ) == THREAD_FAIL) {
+                    fprintf(stderr, "failed when updating "
+                        "minicolumn neighbors.\n");
+                    td->exit_status = 1;
+                    pthread_exit(NULL);
+                }
+                if ((x|y)==0) {
+                    n = (*(*(td->minicolumns+y)+x))->neighbors;
+                    printf("self 0x%08x\n", *(*(td->minicolumns+y)+x));
+                    while (*n) {
+                        printf("0x%08x ", *n);
+                        n++;
+                    }
+                    printf("\n");
+                }
+            }
         }
     }
 
+    /* set the top minicolumns active, and disable
+       the others */
+
+    pthread_exit(NULL);
+}
+
+thread_status_t update_minicolumn_neighbors(
+    struct minicolumn ***neighbors,
+    struct minicolumn ***mc,
+    unsigned int old_ir,
+    unsigned int new_ir,
+    unsigned int x,
+    unsigned int y)
+{
+    struct minicolumn **nptr = NULL;
+    unsigned int oldleft, oldright, oldtop, oldbottom;
+    unsigned int newleft, newright, newtop, newbottom;
+    unsigned int old_area, new_area;
+    signed int area_diff;
+    register i, j, z=0;
+
+    /* stay within the boundaries, 0 - dimension-1 */
+    oldleft = x < old_ir ? 0 : x - old_ir;
+    oldright = x + old_ir >= layer4_width ?
+        layer4_width - 1 : x + old_ir;
+    oldtop = y < old_ir ? 0 : y - old_ir;
+    oldbottom = y + old_ir >= layer4_height ?
+        layer4_height - 1 : y + old_ir;
+
+    old_area = (oldright - oldleft + (old_ir>0?1:0)) *
+               (oldbottom - oldtop + (old_ir>0?1:0));
+
+    newleft = x < new_ir ? 0 : x - new_ir;
+    newright = x + new_ir >= layer4_width ?
+        layer4_width - 1 : x + new_ir;
+    newtop = y < new_ir ? 0 : y - new_ir;
+    newbottom = y + new_ir >= layer4_height ?
+        layer4_height - 1 : y + new_ir;
+
+    new_area = (newright - newleft + (new_ir>0?1:0)) *
+               (newbottom - newtop + (new_ir>0?1:0));
+    /* don't include this minicolumn in the neighbor allocation. */
+    new_area--;
+
+    /* printf("(%u, %u): (%u - %u) * (%u - %u)\n", x, y, newright, newleft, newbottom, newtop); */
+    /* printf("\told_area %u (old_ir %u) new_area %u (new_ir %u)\n",
+        old_area, old_ir, new_area, new_ir); */
+    if (new_area > old_area) {
+        /* man realloc:
+           If  ptr  is  NULL,  then  the call is equivalent to mal-
+           loc(size), for all values of size */
+        *neighbors = (struct minicolumn **)realloc(
+            *neighbors, sizeof(struct minicolumn *)*(new_area+1));
+        /* null terminate the end */
+        memset(*neighbors, 0,
+            sizeof(struct minicolumn *)*(new_area+1));
+        /* printf("\t%u neighbors allocated\n", new_area); */
+        nptr = *neighbors;
+        if (!*neighbors)
+            return THREAD_FAIL;
+        for (i=newleft; i<=newright; i++) {
+            for (j=newtop; j<=newbottom; j++) {
+                /* skip minicolumns within old area */
+                if (i >= oldleft && i <= oldright)
+                    if (j >= oldbottom && j <= oldtop)
+                        continue;
+                *nptr = *(*(mc+j)+i);
+                nptr++;
+                z++;
+               /* printf("\t%u\n", z);*/
+            }
+        }
+        z++;
+        /* printf("\n");
+        printf("\t%u neighbors found\n", z); */
+    } else {
+        printf("Freeing %u neighbors\n", old_area-new_area);
+    }
+
+    return THREAD_SUCCESS;
 }
 

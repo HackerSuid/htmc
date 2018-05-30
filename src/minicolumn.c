@@ -20,6 +20,12 @@ int alloc_minicolumn_synapses(
     return 0;
 }
 
+void free_dendrite(struct synapse *dendrite)
+{
+    if (dendrite)
+        free(dendrite);
+}
+
 unsigned int compute_minicolumn_inhib_rad(
     struct minicolumn *mc)
 {
