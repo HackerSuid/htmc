@@ -34,6 +34,30 @@ thread_status_t update_minicolumn_neighbors(
     unsigned int y
 );
 
+/* this struct is used to compute the geometric difference
+   between the minicolumn neighborhoods when the inhibition
+   radius changes. this allows me to compute only the
+   neighboring minicolumns that have joined or left the
+   neighborhood and avoid iterating over all of them
+   needlessly */
+struct rect
+{
+    unsigned int top;
+    unsigned int left;
+    unsigned int bottom;
+    unsigned int right;
+};
+
+struct rect_of_rects
+{
+    struct rect *top;
+    struct rect *left;
+    struct rect *bottom;
+    struct rect *right;
+};
+
+void free_rects(struct rect_of_rects rr);
+
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
     struct layer *layer;
@@ -464,8 +488,11 @@ thread_status_t update_minicolumn_neighbors(
     unsigned int old_area, new_area;
     signed int area_diff;
     register i, j, z=0;
+    struct rect_of_rects neighbor_rects;
 
-    /* stay within the boundaries, 0 - dimension-1 */
+    /* compute the old surface area given the previous
+       inhibition radius. stay within the boundaries,
+       0 - dimension-1 */
     oldleft = x < old_ir ? 0 : x - old_ir;
     oldright = x + old_ir >= layer4_width ?
         layer4_width - 1 : x + old_ir;
@@ -473,9 +500,12 @@ thread_status_t update_minicolumn_neighbors(
     oldbottom = y + old_ir >= layer4_height ?
         layer4_height - 1 : y + old_ir;
 
+    /* adding one to make the search inclusive of the edge */
     old_area = (oldright - oldleft + (old_ir>0?1:0)) *
                (oldbottom - oldtop + (old_ir>0?1:0));
 
+    /* compute the new surface area given the current
+       inhibition radius. */
     newleft = x < new_ir ? 0 : x - new_ir;
     newright = x + new_ir >= layer4_width ?
         layer4_width - 1 : x + new_ir;
@@ -488,41 +518,239 @@ thread_status_t update_minicolumn_neighbors(
     /* don't include this minicolumn in the neighbor allocation. */
     new_area--;
 
-    /* printf("(%u, %u): (%u - %u) * (%u - %u)\n", x, y, newright, newleft, newbottom, newtop); */
-    /* printf("\told_area %u (old_ir %u) new_area %u (new_ir %u)\n",
-        old_area, old_ir, new_area, new_ir); */
+    printf("(%u, %u): (%u - %u + %u) * (%u - %u + %u)\n",
+        x, y, newright, newleft,
+        (new_ir>0?1:0), newbottom, newtop,
+        (new_ir>0?1:0));
+    printf("\told_area %u (old_ir %u) new_area %u (new_ir %u)\n",
+        old_area, old_ir, new_area, new_ir);
+
+    neighbor_rects.top = NULL;
+    neighbor_rects.bottom = NULL;
+    neighbor_rects.left = NULL;
+    neighbor_rects.right = NULL;
+    /* if the new area is greater than the old, then it will
+       allocate & assign new neighbor minicolumns. */
     if (new_area > old_area) {
-        /* man realloc:
-           If  ptr  is  NULL,  then  the call is equivalent to mal-
-           loc(size), for all values of size */
+        /* allocating one extra for null termination. passing
+           a null to realloc is equivalent to calling malloc */
         *neighbors = (struct minicolumn **)realloc(
             *neighbors, sizeof(struct minicolumn *)*(new_area+1));
         /* null terminate the end */
         memset(*neighbors, 0,
             sizeof(struct minicolumn *)*(new_area+1));
-        /* printf("\t%u neighbors allocated\n", new_area); */
+        printf("\t%u neighbors allocated\n", new_area);
         nptr = *neighbors;
         if (!*neighbors)
             return THREAD_FAIL;
-        for (i=newleft; i<=newright; i++) {
-            for (j=newtop; j<=newbottom; j++) {
-                /* skip minicolumns within old area */
-                if (i >= oldleft && i <= oldright)
-                    if (j >= oldbottom && j <= oldtop)
+
+        /* if old_area is 0, then that means this is the first
+           time it was computed, so the top rect will be identical
+           to new_area, and it can stop here. */
+        if (__builtin_expect(old_area==0, 0)) {
+            neighbor_rects.top = (struct rect *)malloc(
+                sizeof(struct rect));
+            neighbor_rects.top->top = newtop;
+            neighbor_rects.top->left = newleft;
+            neighbor_rects.top->bottom = newbottom;
+            neighbor_rects.top->right = newright;
+
+            printf("\ttop rect: T %u L %u B %u R %u\n",
+                neighbor_rects.top->top,
+                neighbor_rects.top->left,
+                neighbor_rects.top->bottom,
+                neighbor_rects.top->right);
+            printf("\ttop rect is new area\n");
+
+            z=0;
+            for (i=neighbor_rects.top->left;
+                 i<=neighbor_rects.top->right;
+                 i++) {
+                for (j=neighbor_rects.top->top;
+                     j<=neighbor_rects.top->bottom;
+                     j++) {
+                    /* skip the minicolumn for which neighbors
+                       are being computed */
+                    if (i == x  && j == y)
                         continue;
-                *nptr = *(*(mc+j)+i);
-                nptr++;
-                z++;
-               /* printf("\t%u\n", z);*/
+                    *nptr = *(*(mc+j)+i);
+                    nptr++;
+                    z++;
+                }
             }
+
+            printf("\ttop rect %u\n", z);
+            free_rects(neighbor_rects);
+            return THREAD_SUCCESS;
         }
-        z++;
-        /* printf("\n");
-        printf("\t%u neighbors found\n", z); */
+
+        if (__builtin_expect(newtop < oldtop, 1)) {
+            /* there is a top rect.  compute the boundaries */
+            neighbor_rects.top = (struct rect *)malloc(
+                sizeof(struct rect));
+            neighbor_rects.top->top = newtop;
+            neighbor_rects.top->left = newleft;
+            neighbor_rects.top->bottom = oldtop-1;
+            neighbor_rects.top->right = newright;
+            printf("top rect: T %u L %u B %u R %u\n",
+                neighbor_rects.top->top,
+                neighbor_rects.top->left,
+                neighbor_rects.top->bottom,
+                neighbor_rects.top->right);
+
+            for (i=neighbor_rects.top->left;
+                 i<=neighbor_rects.top->right;
+                 i++) {
+                for (j=neighbor_rects.top->top;
+                     j<=neighbor_rects.top->bottom;
+                     j++) {
+                    /* if old_area is greater than 0, then no
+                       need to skip the current minicolumn. */
+                    *nptr = *(*(mc+j)+i);
+                    nptr++;
+                    z++;
+                }
+            }
+            printf("\ttop rect %u\n", z);
+        }
+
+        if (__builtin_expect(newbottom > oldbottom, 1)) {
+            /* there is a bottom rect.  compute the boundaries */
+            z=0;
+            neighbor_rects.bottom = (struct rect *)malloc(
+                sizeof(struct rect));
+            neighbor_rects.bottom->top = oldbottom+1;
+            neighbor_rects.bottom->left = newleft;
+            neighbor_rects.bottom->bottom = newbottom;
+            neighbor_rects.bottom->right = newright;
+            printf("bottom  rect: T %u L %u B %u R %u\n",
+                neighbor_rects.bottom->top,
+                neighbor_rects.bottom->left,
+                neighbor_rects.bottom->bottom,
+                neighbor_rects.bottom->right);
+
+            for (i=neighbor_rects.bottom->left;
+                 i<=neighbor_rects.bottom->right;
+                 i++) {
+                for (j=neighbor_rects.bottom->top;
+                     j<=neighbor_rects.bottom->bottom;
+                     j++) {
+                    /* if old_area is greater than 0, then no
+                       need to skip the current minicolumn. */
+                    *nptr = *(*(mc+j)+i);
+                    nptr++;
+                    z++;
+                }
+            }
+            printf("\tbottom rect %u\n", z);
+        }
+
+        if (__builtin_expect(newleft < oldleft, 1)) {
+            /* there is a left rect.  compute the boundaries */
+            z=0;
+            neighbor_rects.left = (struct rect *)malloc(
+                sizeof(struct rect));
+            /* if there is no top rect, then the left rect
+               starts at the top */
+            neighbor_rects.left->top = neighbor_rects.top?
+                neighbor_rects.top->bottom+1 : 0;
+            neighbor_rects.left->left = newleft;
+            /* if there is no bottom rect, then the left rect
+               starts at the top */
+            neighbor_rects.left->bottom = neighbor_rects.bottom?
+                neighbor_rects.bottom->top-1 : newbottom;
+            neighbor_rects.left->right = oldleft-1;
+            printf("left rect: T %u L %u B %u R %u\n",
+                neighbor_rects.left->top,
+                neighbor_rects.left->left,
+                neighbor_rects.left->bottom,
+                neighbor_rects.left->right);
+
+            for (i=neighbor_rects.left->left;
+                 i<=neighbor_rects.left->right;
+                 i++) {
+                for (j=neighbor_rects.left->top;
+                     j<=neighbor_rects.left->bottom;
+                     j++) {
+                    /* if old_area is greater than 0, then no
+                       need to skip the current minicolumn. */
+                    *nptr = *(*(mc+j)+i);
+                    nptr++;
+                    z++;
+                }
+            }
+            printf("\tleft rect %u\n", z);
+        }
+
+        if (__builtin_expect(newright > oldright, 1)) {
+            /* there is a right rect. compute the boundaries */
+            z=0;
+            neighbor_rects.right = (struct rect *)malloc(
+                sizeof(struct rect));
+            /* if there is no top rect, then the right rect
+               starts at the top */
+            neighbor_rects.right->top = neighbor_rects.top?
+                neighbor_rects.top->bottom+1 : 0;
+            neighbor_rects.right->left = oldleft+1;
+            /* if there is no bottom rect, then the right rect
+               ends at the new bottom */
+            neighbor_rects.right->bottom = neighbor_rects.bottom?
+                neighbor_rects.bottom->top-1 : newbottom;
+            neighbor_rects.right->right = newright;
+            printf("right rect: T %u L %u B %u R %u\n",
+                neighbor_rects.right->top,
+                neighbor_rects.right->left,
+                neighbor_rects.right->bottom,
+                neighbor_rects.right->right);
+
+            for (i=neighbor_rects.right->left;
+                 i<=neighbor_rects.right->right;
+                 i++) {
+                for (j=neighbor_rects.right->top;
+                     j<=neighbor_rects.right->bottom;
+                     j++) {
+                    /* if old_area is greater than 0, then no
+                       need to skip the current minicolumn. */
+                    *nptr = *(*(mc+j)+i);
+                    nptr++;
+                    z++;
+                }
+            }
+            printf("\tright rect %u\n", z);
+        }
     } else {
-        printf("Freeing %u neighbors\n", old_area-new_area);
+        printf("Freeing %u neighbors\n", old_area);
+
+        /* this is not ideal, since even pre-existing neighbor
+           pointers are freed and will have to be recomputed */
+        free(*neighbors);
+        *neighbors = NULL;
+
+        return update_minicolumn_neighbors(
+            neighbors, mc, 0, old_ir, x, y);
     }
 
+    free_rects(neighbor_rects);
     return THREAD_SUCCESS;
+}
+
+void free_rects(struct rect_of_rects rr)
+{
+    if (rr.top) {
+        free(rr.top);
+        rr.top = NULL;
+    }
+    if (rr.bottom) {
+        free(rr.bottom);
+        rr.bottom = NULL;
+    }
+    if (rr.left) {
+        free(rr.left);
+        rr.left = NULL;
+    }
+    if (rr.right) {
+        free(rr.right);
+        rr.right = NULL;
+    }
 }
 

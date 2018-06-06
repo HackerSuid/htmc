@@ -1,4 +1,8 @@
-A multithreaded implementation of HTM in ISO standard compliant C.
+A multithreaded implementation of HTM in ISO standard C, designed to avoid as many programming abstractions as possible.
+  - minimal loop iteration complexity
+  - minimal conditional jumps
+  - minimal function calls, especially in loops
+  - efficient use of cpu L2i/L2d cache, consciously try for hits
 
 Libraries and APIs:
 libxml2
