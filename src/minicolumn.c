@@ -20,6 +20,27 @@ int alloc_minicolumn_synapses(
     return 0;
 }
 
+void check_minicolumn_activation(
+    struct minicolumn *mc,
+    float local_activity)
+{
+    struct minicolumn **nptr = mc->neighbors;
+    unsigned int num_higher = 0;
+    unsigned int max_active;
+
+    while (*nptr) {
+        if ((*nptr)->overlap > mc->overlap)
+            num_higher++;
+        nptr++;
+    }
+    max_active = (((unsigned int)nptr -
+                  (unsigned int)(mc->neighbors)) /
+                  sizeof(struct minicolumn *)) * local_activity;
+    /* shift and set minicolumn activity mask's LSB */
+    mc->active_mask =
+        (mc->active_mask<<1) | (num_higher<max_active? 1 : 0);
+}
+
 void free_dendrite(struct synapse *dendrite)
 {
     if (dendrite)

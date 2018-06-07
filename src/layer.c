@@ -21,6 +21,7 @@ pthread_attr_t threadattr;
 
 unsigned int layer4_width;
 unsigned int layer4_height;
+float local_mc_activity;
 
 void* compute_layer_inhib_rad(void *thread_data);
 void* compute_overlaps(void *thread_data);
@@ -103,6 +104,8 @@ struct layer* alloc_layer4(struct layer4_conf conf)
     layer->width = conf.width;
     layer4_height = conf.height;
     layer4_width = conf.width;
+
+    local_mc_activity = conf.colconf.local_activity;
 
     /* partition minicolumns between multiple threads.
 
@@ -250,6 +253,8 @@ int init_minicol_receptive_flds(
                     synptr++;
                 }
             }
+            /* initialize active bitmask */
+            (*(*(layer->minicolumns+y)+x))->active_mask = 0;
             /* set the initial boost value */
             (*(*(layer->minicolumns+y)+x))->boost = 1.0;
         }
@@ -344,8 +349,8 @@ int spatial_pooler(struct layer *layer)
         }
     }
 
-    /* Inhibit the neighbors of the columns which received the highest level of
-       feedforward activation. */
+    /* Inhibit the neighbors of the minicolumns which received
+       the highest level of feedforward activation. */
     for (t=0; t<NUM_THREADS; t++) {
         rc = pthread_create(
             &threads[t],
@@ -439,10 +444,10 @@ void* activate_minicolumns(void *thread_data)
     struct thread_data *td = (struct thread_data *)thread_data;
     struct minicolumn **n = NULL;
 
-    /* update neighbors if necessary */
     if (td->old_avg_inhib_rad != *td->avg_inhib_rad) {
         for (y=td->row_start; y<td->row_start+td->row_num; y++) {
             for (x=0; x<td->row_width; x++) {
+                /* update neighbors if necessary */
                 if (update_minicolumn_neighbors(
                     &(*(*(td->minicolumns+y)+x))->neighbors,
                     td->minicolumns,
@@ -455,21 +460,13 @@ void* activate_minicolumns(void *thread_data)
                     td->exit_status = 1;
                     pthread_exit(NULL);
                 }
-                if ((x|y)==0) {
-                    n = (*(*(td->minicolumns+y)+x))->neighbors;
-                    printf("self 0x%08x\n", *(*(td->minicolumns+y)+x));
-                    while (*n) {
-                        printf("0x%08x ", *n);
-                        n++;
-                    }
-                    printf("\n");
-                }
+                /* set the minicolumn active flag based on its
+                   overlap compared to its neighbors. */
+                check_minicolumn_activation(
+                    *(*(td->minicolumns+y)+x), local_mc_activity);
             }
         }
     }
-
-    /* set the top minicolumns active, and disable
-       the others */
 
     pthread_exit(NULL);
 }
