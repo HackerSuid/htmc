@@ -130,9 +130,9 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libhtm_la_LIBADD =
-am_libhtm_la_OBJECTS = htm.lo layer.lo minicolumn.lo parse_conf.lo
-libhtm_la_OBJECTS = $(am_libhtm_la_OBJECTS)
+libhtmc_la_LIBADD =
+am_libhtmc_la_OBJECTS = htm.lo layer.lo minicolumn.lo parse_conf.lo
+libhtmc_la_OBJECTS = $(am_libhtmc_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -171,8 +171,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libhtm_la_SOURCES)
-DIST_SOURCES = $(libhtm_la_SOURCES)
+SOURCES = $(libhtmc_la_SOURCES)
+DIST_SOURCES = $(libhtmc_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -314,8 +314,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LTLIBRARIES = libhtm.la
-libhtm_la_SOURCES = htm.c \
+lib_LTLIBRARIES = libhtmc.la
+libhtmc_la_SOURCES = htm.c \
                     layer.c \
                     minicolumn.c \
                     parse_conf.c
@@ -390,8 +390,8 @@ clean-libLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
-libhtm.la: $(libhtm_la_OBJECTS) $(libhtm_la_DEPENDENCIES) $(EXTRA_libhtm_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(LINK) -rpath $(libdir) $(libhtm_la_OBJECTS) $(libhtm_la_LIBADD) $(LIBS)
+libhtmc.la: $(libhtmc_la_OBJECTS) $(libhtmc_la_DEPENDENCIES) $(EXTRA_libhtmc_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(libdir) $(libhtmc_la_OBJECTS) $(libhtmc_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

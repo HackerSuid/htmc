@@ -4,14 +4,6 @@
 #include "htm.h"
 #include "parse_conf.h"
 
-struct layer
-{
-    struct minicolumn ***minicolumns;
-    unsigned int height;
-    unsigned int width;
-    unsigned int inhibition_radius;
-};
-
 struct layer* alloc_layer4(struct layer4_conf conf);
 int free_layer4(struct layer *layer);
 int init_minicol_receptive_flds(

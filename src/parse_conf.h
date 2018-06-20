@@ -3,25 +3,7 @@
 
 #include <libxml/tree.h>
 
-struct layer4_conf
-{
-    unsigned long height;
-    unsigned long width;
-    short cells_per_col;
-    char sensorimotor;
-    unsigned long loc_patt_sz;
-    short loc_patt_bits;
-
-    struct columns_conf
-    {
-        float rec_field_sz;
-        float local_activity;
-        float column_complexity;
-        char high_tier;
-        unsigned long activity_cycle_window;
-    } colconf;
-
-};
+#include "htm.h"
 
 /* update the conf data pointers with addresses of new
    sublayer conf struct */
@@ -34,13 +16,6 @@ void update_sublayer_conf_attrs(
 /* walk through the Htm node linked list and count the
    sublayer nodes. */
 unsigned long cnt_htm_sublayer_nodes (xmlNodePtr);
-
-struct htm_conf
-{
-    char *target;
-    char allow_boosting;
-    struct layer4_conf layer4conf;
-};
 
 typedef enum c_type
 {

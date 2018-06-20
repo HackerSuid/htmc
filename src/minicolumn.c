@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "htm.h"
 #include "minicolumn.h"
 #include "synapse.h"
 
@@ -27,6 +28,14 @@ void check_minicolumn_activation(
     struct minicolumn **nptr = mc->neighbors;
     unsigned int num_higher = 0;
     unsigned int max_active;
+
+    /* if the overlap didn't meet the minicolumn overlap
+       complexity even after boosting, then the minicolumn
+       doesn't compete for pattern representation. */
+    if (mc->overlap == 0) {
+        mc->active_mask <<= 1;
+        return;
+    }
 
     while (*nptr) {
         if ((*nptr)->overlap > mc->overlap)
@@ -72,5 +81,10 @@ unsigned int compute_minicolumn_inhib_rad(
     /*printf("%f/%u=%u\n",
         avgdist, scnt, (unsigned int)(avgdist/scnt));*/
     return (unsigned int)(avgdist/scnt);
+}
+
+unsigned char mc_active_at(struct minicolumn *mc, unsigned int t)
+{
+    return (mc->active_mask&(1<<t)) ? 1 : 0;
 }
 

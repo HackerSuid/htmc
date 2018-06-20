@@ -6,7 +6,7 @@
 #include "synapse.h"
 #include "threads.h"
 
-#define NUM_THREADS 4
+#define NUM_THREADS 1
 
 /* TODO: get number of cpu cores */
 pthread_t threads[NUM_THREADS];
@@ -381,7 +381,7 @@ int spatial_pooler(struct layer *layer)
     }
 
     /* Update boosting parameters if htm is learning. */
-    pthread_exit(NULL);
+
     return 0;
 }
 
@@ -464,7 +464,10 @@ void* activate_minicolumns(void *thread_data)
                    overlap compared to its neighbors. */
                 check_minicolumn_activation(
                     *(*(td->minicolumns+y)+x), local_mc_activity);
+                
+                printf("%d ", mc_active_at(*(*(td->minicolumns+y)+x), 0));
             }
+            printf("\n");
         }
     }
 
@@ -515,12 +518,12 @@ thread_status_t update_minicolumn_neighbors(
     /* don't include this minicolumn in the neighbor allocation. */
     new_area--;
 
-    printf("(%u, %u): (%u - %u + %u) * (%u - %u + %u)\n",
+    /*printf("(%u, %u): (%u - %u + %u) * (%u - %u + %u)\n",
         x, y, newright, newleft,
         (new_ir>0?1:0), newbottom, newtop,
         (new_ir>0?1:0));
     printf("\told_area %u (old_ir %u) new_area %u (new_ir %u)\n",
-        old_area, old_ir, new_area, new_ir);
+        old_area, old_ir, new_area, new_ir);*/
 
     neighbor_rects.top = NULL;
     neighbor_rects.bottom = NULL;
@@ -536,7 +539,7 @@ thread_status_t update_minicolumn_neighbors(
         /* null terminate the end */
         memset(*neighbors, 0,
             sizeof(struct minicolumn *)*(new_area+1));
-        printf("\t%u neighbors allocated\n", new_area);
+        /*printf("\t%u neighbors allocated\n", new_area);*/
         nptr = *neighbors;
         if (!*neighbors)
             return THREAD_FAIL;
@@ -552,12 +555,14 @@ thread_status_t update_minicolumn_neighbors(
             neighbor_rects.top->bottom = newbottom;
             neighbor_rects.top->right = newright;
 
+            /*
             printf("\ttop rect: T %u L %u B %u R %u\n",
                 neighbor_rects.top->top,
                 neighbor_rects.top->left,
                 neighbor_rects.top->bottom,
                 neighbor_rects.top->right);
             printf("\ttop rect is new area\n");
+            */
 
             z=0;
             for (i=neighbor_rects.top->left;
@@ -576,7 +581,7 @@ thread_status_t update_minicolumn_neighbors(
                 }
             }
 
-            printf("\ttop rect %u\n", z);
+            /*printf("\ttop rect %u\n", z);*/
             free_rects(neighbor_rects);
             return THREAD_SUCCESS;
         }
@@ -589,11 +594,13 @@ thread_status_t update_minicolumn_neighbors(
             neighbor_rects.top->left = newleft;
             neighbor_rects.top->bottom = oldtop-1;
             neighbor_rects.top->right = newright;
+            /*
             printf("top rect: T %u L %u B %u R %u\n",
                 neighbor_rects.top->top,
                 neighbor_rects.top->left,
                 neighbor_rects.top->bottom,
                 neighbor_rects.top->right);
+            */
 
             for (i=neighbor_rects.top->left;
                  i<=neighbor_rects.top->right;
@@ -608,7 +615,7 @@ thread_status_t update_minicolumn_neighbors(
                     z++;
                 }
             }
-            printf("\ttop rect %u\n", z);
+            /*printf("\ttop rect %u\n", z);*/
         }
 
         if (__builtin_expect(newbottom > oldbottom, 1)) {
@@ -620,11 +627,13 @@ thread_status_t update_minicolumn_neighbors(
             neighbor_rects.bottom->left = newleft;
             neighbor_rects.bottom->bottom = newbottom;
             neighbor_rects.bottom->right = newright;
+            /*
             printf("bottom  rect: T %u L %u B %u R %u\n",
                 neighbor_rects.bottom->top,
                 neighbor_rects.bottom->left,
                 neighbor_rects.bottom->bottom,
                 neighbor_rects.bottom->right);
+            */
 
             for (i=neighbor_rects.bottom->left;
                  i<=neighbor_rects.bottom->right;
@@ -639,7 +648,7 @@ thread_status_t update_minicolumn_neighbors(
                     z++;
                 }
             }
-            printf("\tbottom rect %u\n", z);
+            /*printf("\tbottom rect %u\n", z);*/
         }
 
         if (__builtin_expect(newleft < oldleft, 1)) {
@@ -657,11 +666,13 @@ thread_status_t update_minicolumn_neighbors(
             neighbor_rects.left->bottom = neighbor_rects.bottom?
                 neighbor_rects.bottom->top-1 : newbottom;
             neighbor_rects.left->right = oldleft-1;
+            /*
             printf("left rect: T %u L %u B %u R %u\n",
                 neighbor_rects.left->top,
                 neighbor_rects.left->left,
                 neighbor_rects.left->bottom,
                 neighbor_rects.left->right);
+            */
 
             for (i=neighbor_rects.left->left;
                  i<=neighbor_rects.left->right;
@@ -676,7 +687,7 @@ thread_status_t update_minicolumn_neighbors(
                     z++;
                 }
             }
-            printf("\tleft rect %u\n", z);
+            /*printf("\tleft rect %u\n", z);*/
         }
 
         if (__builtin_expect(newright > oldright, 1)) {
@@ -694,11 +705,13 @@ thread_status_t update_minicolumn_neighbors(
             neighbor_rects.right->bottom = neighbor_rects.bottom?
                 neighbor_rects.bottom->top-1 : newbottom;
             neighbor_rects.right->right = newright;
+            /*
             printf("right rect: T %u L %u B %u R %u\n",
                 neighbor_rects.right->top,
                 neighbor_rects.right->left,
                 neighbor_rects.right->bottom,
                 neighbor_rects.right->right);
+            */
 
             for (i=neighbor_rects.right->left;
                  i<=neighbor_rects.right->right;
@@ -713,7 +726,7 @@ thread_status_t update_minicolumn_neighbors(
                     z++;
                 }
             }
-            printf("\tright rect %u\n", z);
+            /*printf("\tright rect %u\n", z);*/
         }
     } else {
         printf("Freeing %u neighbors\n", old_area);

@@ -1,5 +1,5 @@
-lib_LTLIBRARIES = libhtm.la
-libhtm_la_SOURCES = htm.c \
+lib_LTLIBRARIES = libhtmc.la
+libhtmc_la_SOURCES = htm.c \
                     layer.c \
                     minicolumn.c \
                     parse_conf.c

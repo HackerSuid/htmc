@@ -59,3 +59,13 @@ int process_subcortical_input (void)
     return 0;
 }
 
+struct layer* get_layer4()
+{
+    return layer4;
+}
+
+input_patterns* get_htm_input_patterns(void)
+{
+    return ip;
+}
+
