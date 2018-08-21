@@ -28,6 +28,8 @@ void check_minicolumn_activation(
     struct minicolumn **nptr = mc->neighbors;
     unsigned int num_higher = 0;
     unsigned int max_active;
+    struct synapse *synptr = NULL;
+    register s;
 
     /* if the overlap didn't meet the minicolumn overlap
        complexity even after boosting, then the minicolumn
@@ -46,8 +48,19 @@ void check_minicolumn_activation(
                   (unsigned int)(mc->neighbors)) /
                   sizeof(struct minicolumn *)) * local_activity;
     /* shift and set minicolumn activity mask's LSB */
-    mc->active_mask =
-        (mc->active_mask<<1) | (num_higher<max_active? 1 : 0);
+    if (num_higher < max_active) {
+        mc->active_mask = (mc->active_mask<<1) | 1;
+        /* modify synaptic permanence */
+        synptr = mc->proximal_dendrite_segment;
+        for (s=0; s<mc->num_synapses; s++) {
+            if (*(synptr->source))
+                synptr->perm += PERM_INC;
+            else
+                synptr->perm -= PERM_DEC;
+            synptr++;
+        }
+    } else
+        mc->active_mask <<= 1;
 }
 
 void free_dendrite(struct synapse *dendrite)

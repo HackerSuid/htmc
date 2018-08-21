@@ -131,7 +131,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libhtmc_la_LIBADD =
-am_libhtmc_la_OBJECTS = htm.lo layer.lo minicolumn.lo parse_conf.lo
+am_libhtmc_la_OBJECTS = htm.lo layer_mgmt.lo layer_algs.lo \
+	minicolumn.lo parse_conf.lo
 libhtmc_la_OBJECTS = $(am_libhtmc_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -316,7 +317,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libhtmc.la
 libhtmc_la_SOURCES = htm.c \
-                    layer.c \
+                    layer_mgmt.c \
+                    layer_algs.c \
                     minicolumn.c \
                     parse_conf.c
 
@@ -400,7 +402,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/htm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layer.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layer_algs.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layer_mgmt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minicolumn.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse_conf.Plo@am__quote@
 
