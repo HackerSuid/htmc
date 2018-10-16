@@ -6,7 +6,9 @@
 
 #define NUM_THREADS 1
 
-struct layer* alloc_layer4(struct layer4_conf conf);
+struct layer* alloc_layer4 (struct layer4_conf conf);
+struct layer* alloc_layer6 (struct layer6_conf conf);
+
 int free_layer4(struct layer *layer);
 int init_minicol_receptive_flds(
     struct layer *layer,

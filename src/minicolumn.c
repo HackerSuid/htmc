@@ -21,32 +21,45 @@ int alloc_minicolumn_synapses(
     return 0;
 }
 
+/* GNU SIMD vector extensions */
+typedef float v4sf __attribute__((vector_size(16)));
+
+void inline __attribute__((always_inline))
+inc_perm_vectors (float *permv)
+{
+}
+
 void check_minicolumn_activation(
     struct minicolumn *mc,
     float local_activity)
 {
-    struct minicolumn **nptr = mc->neighbors;
+    struct minicolumn **nptr = NULL;
     unsigned int num_higher = 0;
     unsigned int max_active;
     struct synapse *synptr = NULL;
     register s;
+    /*v4sf */
 
     /* if the overlap didn't meet the minicolumn overlap
-       complexity even after boosting, then the minicolumn
-       doesn't compete for pattern representation. */
+    complexity even after boosting, then the minicolumn
+    doesn't compete for pattern representation. */
     if (mc->overlap == 0) {
         mc->active_mask <<= 1;
         return;
     }
 
-    while (*nptr) {
+    /* count number of neighboring minicolumns with more
+    overlap */
+    for (nptr=mc->neighbors; *nptr; nptr++)
         if ((*nptr)->overlap > mc->overlap)
             num_higher++;
-        nptr++;
-    }
-    max_active = (((unsigned int)nptr -
-                  (unsigned int)(mc->neighbors)) /
-                  sizeof(struct minicolumn *)) * local_activity;
+    /* compute maximum number of minicolumns that can be
+    active, including this one */
+    max_active =
+        (
+        ((unsigned int)nptr-(unsigned int)(mc->neighbors)
+         + 1) / sizeof(struct minicolumn *)
+        ) * local_activity;
     /* shift and set minicolumn activity mask's LSB */
     if (num_higher < max_active) {
         mc->active_mask = (mc->active_mask<<1) | 1;

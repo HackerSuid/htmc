@@ -19,7 +19,7 @@ float local_mc_activity;
 
 struct layer* alloc_layer4(struct layer4_conf conf)
 {
-    struct layer *layer;
+    struct layer *layer = NULL;
     unsigned int rem_rows;
     register t, x, y;
 
@@ -140,7 +140,7 @@ int free_layer4(struct layer *layer)
     free(layer);
 }
 
-int init_minicol_receptive_flds(
+int init_l4_minicol_receptive_flds(
     struct layer *layer,
     sdr_t input,
     pattern_sz input_sz,
@@ -152,14 +152,28 @@ int init_minicol_receptive_flds(
     unsigned int rec_fld_sz, sqr;
     struct synapse *synptr = NULL;
 
-    /* the input dimensions must be at least equal to that of the
+    /* validate input dimensions are compatible. the input
+       dimensions must be at least equal to that of the
        minicolumns. */
-    if (layer->height > input_sz.height) {
-        fprintf(stderr, "input height less than minicolumn height\n");
-        return 1;
-    }
-    if (layer->width > input_sz.width) {
-        fprintf(stderr, "input width less than minicolumn width\n");
+    if (input_sz.height>1 && input_sz.width>1) {
+        /* Input pattern is 2-dimensional. */
+        if (layer->height > input_sz.height) {
+            fprintf(stderr, "input height less than minicolumn height\n");
+            return 1;
+        }
+        if (layer->width > input_sz.width) {
+            fprintf(stderr, "input width less than minicolumn width\n");
+            return 1;
+        }
+    } else if (input_sz.height==1 && input_sz.width>1) {
+        /* Input is 1-dimensional. */
+        if (layer->width > input_sz.width) {
+            fprintf(stderr, "input width less than minicolumn width\n");
+            return 1;
+        }
+    } else {
+        /* fail */
+        fprintf(stderr, "input is using invalid dimensions\n");
         return 1;
     }
 
@@ -173,8 +187,10 @@ int init_minicol_receptive_flds(
             /* compute the natural center over the input */
             xcent = x*(input_sz.width/layer->width) +
                     input_sz.width/layer->width/2;
-            ycent = y*(input_sz.height/layer->height) +
-                    input_sz.height/layer->height/2;
+            ycent = 0; /* true always when input is 1D */
+            if (input_sz.height>1)
+                ycent = y*(input_sz.height/layer->height) +
+                        input_sz.height/layer->height/2;
             /*printf("xcent %u ycent %u\n", xcent, ycent);*/
             layer->minicolumns[y][x]->input_xcent = xcent;
             layer->minicolumns[y][x]->input_ycent = ycent;
@@ -182,10 +198,14 @@ int init_minicol_receptive_flds(
             /* compute number of synapses */
             maxx = xcent+sqr >= input_sz.width?
                 input_sz.width - 1 : xcent+sqr;
-            maxy = ycent+sqr >= input_sz.height?
-                input_sz.height - 1 : ycent + sqr;
+            maxy = 0;
+            if (input_sz.height>1)
+                maxy = ycent+sqr >= input_sz.height?
+                    input_sz.height - 1 : ycent + sqr;
             minx = xcent < sqr ? 0 : xcent - sqr;
-            miny = ycent < sqr ? 0 : ycent - sqr;
+            miny = 0;
+            if (input_sz.height>1)
+                miny = ycent < sqr ? 0 : ycent - sqr;
 
             (*(*(layer->minicolumns+y)+x))->num_synapses =
                 (maxx-minx)*(maxy-miny);

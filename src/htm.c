@@ -7,65 +7,59 @@
 #include "parse_conf.h"
 #include "layer.h"
 
+/* the parsed htm config structure */
 extern struct htm_conf htmconf;
+/* callback function pointer from an encoder that returns
+new input patterns */
 codec_cb codec_callback;
-
+/* the structure that stores various input patterns returned
+by the encoder */
 input_patterns *ip_container;
-struct layer *layer4;
+/* pointers to layer objects */
+struct layer *layer4, *layer6;
 
-void copy_out_cb_ip(input_patterns *cb_ip, input_patterns *ipc);
-input_patterns* alloc_ipc(input_patterns *cb_ip);
-void free_ip(input_patterns *patts);
-
+/* parse htm configuration parameters. get first input
+pattern set from codec. then initialize the htm layers */
 int init_htm (codec_cb cb)
 {
-    int x, y;
-    if (parse_htm_conf())
-        return 0;
-
     if (!cb) {
         fprintf(stderr, "codec callback is null\n");
-        return 0;
+        return 1;
     }
+
+    if (parse_htm_conf())
+        return 1;
+
     codec_callback = cb;
 
-    /* initialize each htm layer */
-    if (!(layer4=alloc_layer4(htmconf.layer4conf)))
-        return 0;
     if (!get_codec_input()) {
         fprintf(stderr, "failed to call codec\n");
-        return 0;
+        return 1;
     }
-    /* L4 is the first input layer in the feedforward
-       circuit */
-    if (init_minicol_receptive_flds(
+
+    /* initialize each htm layer */
+    if (!(layer6=alloc_layer6(htmconf.layer6conf))) {
+        fprintf(stderr, "failed layer6 allocation\n");
+        return 1;
+    }
+    if (!(layer4=alloc_layer4(htmconf.layer4conf))) {
+        fprintf(stderr, "failed layer4 allocation\n");
+        return 1;
+    }
+    /* L4 is the second layer in the feedforward circuit */
+    if (init_l4_minicol_receptive_flds(
             layer4,
             ip_container->sensory_pattern,
             ip_container->sensory_sz,
             htmconf.layer4conf.colconf.rec_field_sz)>0
     ) {
-        return 0;
+        fprintf(stderr, "failed layer4 initialization\n");
+        return 1;
     }
 
-    return 1;
-}
+    printf("[*] HTM initialization complete.\n");
 
-int get_codec_input(void)
-{
-    input_patterns *cb_ip = NULL;
-    register d;
-
-    cb_ip = codec_callback();
-
-    /* memory for input pattern container needs allocated
-       the first time through here */
-    if (!ip_container)
-        ip_container = alloc_ipc(cb_ip);
-
-    copy_out_cb_ip(cb_ip, ip_container);
-
-    free_ip(cb_ip);
-    return 1;
+    return 0;
 }
 
 void copy_out_cb_ip(input_patterns *cb_ip, input_patterns *ipc)
@@ -143,6 +137,26 @@ void free_ip(input_patterns *patts)
     free(patts->sensory_pattern);
     free(patts->location_pattern);
     free(patts);
+    patts = NULL;
+}
+
+
+int get_codec_input(void)
+{
+    input_patterns *cb_ip = NULL;
+    register d;
+
+    cb_ip = codec_callback();
+
+    /* memory for input pattern container needs allocated
+       the first time through here */
+    if (!ip_container)
+        ip_container = alloc_ipc(cb_ip);
+
+    copy_out_cb_ip(cb_ip, ip_container);
+
+    free_ip(cb_ip);
+    return 1;
 }
 
 int process_subcortical_input (void)

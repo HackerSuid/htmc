@@ -23,6 +23,20 @@ xml_el htm_conf_attrs[] =
     }
 };
 
+xml_el layer6_conf_attrs[] =
+{
+    {
+        "numGCMs",
+        &htmconf.layer6conf.num_gcms,
+        ULONG, 1
+    },
+    {
+        "numCellsPerGCM",
+        &htmconf.layer6conf.num_cells_gcm,
+        ULONG, 1
+    }
+};
+
 xml_el layer4_conf_attrs[] =
 {
     {
@@ -90,6 +104,7 @@ int parse_htm_conf (void)
     xmlChar *xmlstr=NULL;
     unsigned long attr_num=0;
     unsigned long htm_conf_nodes=0;
+    unsigned long layer6_conf_nodes=0;
     unsigned long layer4_conf_nodes=0;
     unsigned long col_conf_nodes=0;
     register c;
@@ -100,6 +115,8 @@ int parse_htm_conf (void)
         perror("Could not open config file for reading");
         goto fail_jmp;
     }
+
+    printf("[*] Parsing configuration: %s\n", conf_path);
 
     /* ignore whitespace "text" nodes between nodes */
     xmlKeepBlanksDefault(0);
@@ -118,12 +135,6 @@ int parse_htm_conf (void)
         fprintf(stderr, "Htm config node missing/misplaced\n");
         goto fail_jmp;
     }
-
-/* TODO delete this code later
-    if (!(num_sublayers = cnt_htm_sublayer_nodes(node))) {
-        fprintf(stderr, "Didn't find any sublayer conf nodes\n");
-        goto fail_jmp;
-    }*/
 
     /* htmconf is an uninitialized global, so it will be
        stored in .bss, preset with zeroes by the loader.
@@ -176,19 +187,6 @@ int parse_htm_conf (void)
             goto fail_jmp;
         }
     }
-        /* create a new sublayer conf struct, and uodate
-           the sublayer conf attr structure to parse the
-           next one */
-/* delete this code later
-        if (--num_sublayers) {
-            next_sublayer =
-                (struct sublayer_conf *)calloc(
-                    1, sizeof(struct sublayer_conf));
-            htmconf.layerconf.next = next_sublayer;
-            update_sublayer_conf_attrs(
-                next_sublayer, sublayer_conf_nodes);
-        }
-    }*/
 
     if (xmlstr) xmlFree(xmlstr);
     if (doc) xmlFreeDoc(doc);

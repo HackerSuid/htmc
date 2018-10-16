@@ -11,6 +11,12 @@
 extern "C" {
 #endif
 
+struct layer6_conf
+{
+    unsigned long num_gcms;
+    unsigned long num_cells_gcm;
+};
+
 struct layer4_conf
 {
     unsigned long height;
@@ -35,6 +41,7 @@ struct htm_conf
 {
     char *target;
     char allow_boosting;
+    struct layer6_conf layer6conf;
     struct layer4_conf layer4conf;
 };
 

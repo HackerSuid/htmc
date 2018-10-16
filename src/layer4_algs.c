@@ -76,7 +76,7 @@ int layer4_feedforward(struct layer *layer)
         timestep.
      2. Form a prediction given the lateral, intrinsic connections of the
      *    region by depolarizing cells with active distal dendrite segments. */
-    temporal_memory();
+    /*temporal_memory();*/
 
     return 0;
 }
