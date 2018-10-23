@@ -13,20 +13,24 @@ extern struct thread_data td[NUM_THREADS];
 
 extern pthread_attr_t threadattr;
 
-extern unsigned int layer4_width;
-extern unsigned int layer4_height;
+extern uint32_t layer4_width;
+extern uint32_t layer4_height;
 extern float local_mc_activity;
 
-void* compute_layer_inhib_rad(void *thread_data);
-void* compute_overlaps(void *thread_data);
-void* activate_minicolumns(void *thread_data);
-thread_status_t update_minicolumn_neighbors(
+static void*
+compute_layer_inhib_rad (void *thread_data);
+static void*
+compute_overlaps (void *thread_data);
+static void*
+activate_minicolumns (void *thread_data);
+static thread_status_t
+update_minicolumn_neighbors(
     struct minicolumn ***neighbors,
     struct minicolumn ***mc,
-    unsigned int old_ir,
-    unsigned int new_ir,
-    unsigned int x,
-    unsigned int y
+    uint32_t old_ir,
+    uint32_t new_ir,
+    uint32_t x,
+    uint32_t y
 );
 
 /* this struct is used to compute the geometric difference
@@ -37,10 +41,10 @@ thread_status_t update_minicolumn_neighbors(
    needlessly */
 struct rect
 {
-    unsigned int top;
-    unsigned int left;
-    unsigned int bottom;
-    unsigned int right;
+    uint32_t top;
+    uint32_t left;
+    uint32_t bottom;
+    uint32_t right;
 };
 
 struct rect_of_rects
@@ -51,19 +55,23 @@ struct rect_of_rects
     struct rect *right;
 };
 
-void free_rects(struct rect_of_rects rr);
+static int32_t
+spatial_pooler (struct layer *layer);
+static void
+free_rects (struct rect_of_rects rr);
 
-int layer4_feedforward(struct layer *layer)
+int32_t
+layer4_feedforward (struct layer *layer)
 {
     /* spatial pooling procedure. compute the inference
-       (aka overlap score) for each column. This is a
+       (aka overlap score) for each minicolumn. This is a
        linear summation of active, feedforward input bits
-       plus a boost value. The columns with the highest
-       overlap perform an inhibition function to
-       prevent neighboring columns within a certain
-       radius from becoming active. The columns learn to
-       map spatially similar input patterns to the same
-       or a similar set of active columns. */
+       plus a boost value. The minicolumns with the
+       highest overlap perform an inhibition function to
+       prevent neighboring minicolumns within a certain
+       radius from becoming active. The minicolumns learn
+       to map spatially similar input patterns to the
+       same or a similar set of active minicolumns. */
     spatial_pooler(layer);
     /* temporal memory procedure.
      1a. Depolarized cells within active minicolumns after
@@ -81,10 +89,10 @@ int layer4_feedforward(struct layer *layer)
     return 0;
 }
 
-int spatial_pooler(struct layer *layer)
+static int32_t
+spatial_pooler (struct layer *layer)
 {
-    register t;
-    int rc;
+    uint32_t t, rc;
 
     /* compute the inhibition radius used by each minicolumn.
        this is derived from the average connected receptive
@@ -187,9 +195,10 @@ int spatial_pooler(struct layer *layer)
     return 0;
 }
 
-void* compute_layer_inhib_rad(void *thread_data)
+static void*
+compute_layer_inhib_rad (void *thread_data)
 {
-    register x, y;
+    uint32_t x, y;
 
     struct thread_data *td = (struct thread_data *)thread_data;
 
@@ -206,11 +215,12 @@ void* compute_layer_inhib_rad(void *thread_data)
         (td->row_num*td->row_width);
 }
 
-void* compute_overlaps(void *thread_data)
+static void*
+compute_overlaps (void *thread_data)
 {
-    register x, y, s;
+    uint32_t x, y, s;
     struct synapse *synptr = NULL;
-    unsigned int num_syns;
+    uint32_t num_syns;
 
     struct thread_data *td = (struct thread_data *)thread_data;
 
@@ -234,15 +244,16 @@ void* compute_overlaps(void *thread_data)
                 td->column_complexity * num_syns ?
                 (*(*(td->minicolumns+y)+x))->boost : 0;
             /*printf("min compl %u boosted/zeroed overlap %u\n",
-               (unsigned int)(td->column_complexity * num_syns),
+               (uint32_t)(td->column_complexity * num_syns),
                 (*(*(td->minicolumns+y)+x))->overlap);*/
         }
     }
 }
 
-void* activate_minicolumns(void *thread_data)
+static void*
+activate_minicolumns (void *thread_data)
 {
-    register x, y;
+    uint32_t x, y;
     struct thread_data *td = (struct thread_data *)thread_data;
     struct minicolumn **n = NULL;
 
@@ -276,20 +287,21 @@ void* activate_minicolumns(void *thread_data)
     pthread_exit(NULL);
 }
 
-thread_status_t update_minicolumn_neighbors(
+static thread_status_t
+update_minicolumn_neighbors(
     struct minicolumn ***neighbors,
     struct minicolumn ***mc,
-    unsigned int old_ir,
-    unsigned int new_ir,
-    unsigned int x,
-    unsigned int y)
+    uint32_t old_ir,
+    uint32_t new_ir,
+    uint32_t x,
+    uint32_t y)
 {
     struct minicolumn **nptr = NULL;
-    unsigned int oldleft, oldright, oldtop, oldbottom;
-    unsigned int newleft, newright, newtop, newbottom;
-    unsigned int old_area, new_area;
-    signed int area_diff;
-    register i, j, z=0;
+    uint32_t oldleft, oldright, oldtop, oldbottom;
+    uint32_t newleft, newright, newtop, newbottom;
+    uint32_t old_area, new_area;
+    int32_t area_diff;
+    uint32_t i, j, z=0;
     struct rect_of_rects neighbor_rects;
 
     /* compute the old surface area given the previous
@@ -546,7 +558,8 @@ thread_status_t update_minicolumn_neighbors(
     return THREAD_SUCCESS;
 }
 
-void free_rects(struct rect_of_rects rr)
+static void
+free_rects (struct rect_of_rects rr)
 {
     if (rr.top) {
         free(rr.top);

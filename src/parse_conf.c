@@ -1,11 +1,14 @@
+#include "htm.h"
+#include "parse_conf.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <libxml/tree.h>
 
-#include "htm.h"
-#include "parse_conf.h"
+static int32_t
+set_conf_node_attr (xmlNodePtr node, xml_el attr);
 
 struct htm_conf htmconf;
 
@@ -107,7 +110,7 @@ int parse_htm_conf (void)
     unsigned long layer6_conf_nodes=0;
     unsigned long layer4_conf_nodes=0;
     unsigned long col_conf_nodes=0;
-    register c;
+    uint32_t c;
 
     if ((conf_env=(char *)secure_getenv("HTM_CONF_PATH"))!=NULL)
         conf_path=conf_env;
@@ -251,7 +254,8 @@ unsigned long cnt_htm_sublayer_nodes(xmlNodePtr htmnode)
     return nsublayers;
 }
 
-int set_conf_node_attr(xmlNodePtr node, xml_el attr)
+static int32_t
+set_conf_node_attr (xmlNodePtr node, xml_el attr)
 {
     xmlChar *xmlstr=NULL;
 
@@ -274,7 +278,7 @@ int set_conf_node_attr(xmlNodePtr node, xml_el attr)
             break;
         case STRING:
             *(char **)attr.conf_data =
-                strdup((char *)xmlstr);
+                (char *)strdup((char *)xmlstr);
             break;
         case ULONG:
             *(long *)attr.conf_data =

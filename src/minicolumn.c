@@ -21,9 +21,6 @@ int alloc_minicolumn_synapses(
     return 0;
 }
 
-/* GNU SIMD vector extensions */
-typedef float v4sf __attribute__((vector_size(16)));
-
 void inline __attribute__((always_inline))
 inc_perm_vectors (float *permv)
 {
@@ -37,7 +34,7 @@ void check_minicolumn_activation(
     unsigned int num_higher = 0;
     unsigned int max_active;
     struct synapse *synptr = NULL;
-    register s;
+    uint32_t s;
     /*v4sf */
 
     /* if the overlap didn't meet the minicolumn overlap
@@ -82,34 +79,39 @@ void free_dendrite(struct synapse *dendrite)
         free(dendrite);
 }
 
-unsigned int compute_minicolumn_inhib_rad(
-    struct minicolumn *mc)
-{
-    register s;
-    struct synapse *synptr = mc->proximal_dendrite_segment;
-    float avgdist=0;
-    unsigned int scnt=0;
-    /* 32bit signed representations for distance formula */
-    signed int x1, x2, y1, y2;
+/* GNU SIMD vector extensions */
+typedef float v4sf __attribute__((vector_size(16)));
 
-    x1 = (signed int)mc->input_xcent;
-    y1 = (signed int)mc->input_ycent;
-    for (s=0; s<mc->num_synapses; s++) {
+uint32_t
+compute_minicolumn_inhib_rad (struct minicolumn *mc)
+{
+    struct synapse *synptr = mc->proximal_dendrite_segment;
+    struct synapse *end = synptr + mc->num_synapses;
+    float avgdist=0;
+    uint32_t scnt=0;
+    uint32_t x1, x2, y1, y2;
+
+    x1 = mc->input_xcent;
+    y1 = mc->input_ycent;
+    while (synptr < end) {
         if (synptr->perm >= CONNECTED_PERM) {
             scnt++;
-            x2 = (signed int)synptr->srcx;
-            y2 = (signed int)synptr->srcy;
-            avgdist += sqrt(pow(x2-x1, 2)+pow(y2-y1, 2));
+            x2 = synptr->srcx;
+            y2 = synptr->srcy;
+            avgdist += sqrt(
+                pow(x2>x1?x2-x1:x1-x2, 2) +
+                pow(y2>y1?y2-y1:y1-y2, 2));
         }
         synptr++;
     }
     /* this could theoretically return 0 */
     /*printf("%f/%u=%u\n",
         avgdist, scnt, (unsigned int)(avgdist/scnt));*/
-    return (unsigned int)(avgdist/scnt);
+    return (uint32_t)(avgdist/scnt);
 }
 
-unsigned char mc_active_at(struct minicolumn *mc, unsigned int t)
+unsigned char
+mc_active_at (struct minicolumn *mc, uint32_t t)
 {
     return (mc->active_mask&(1<<t)) ? 1 : 0;
 }

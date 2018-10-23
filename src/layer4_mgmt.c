@@ -1,60 +1,57 @@
-#include "math.h"
-#include "string.h"
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
 #include <pthread.h>
 #include "layer.h"
+#include "minicolumn.h"
 #include "synapse.h"
 #include "threads.h"
 
-pthread_attr_t threadattr;
-/* argument structure passed to the threads */
-struct thread_data td[NUM_THREADS];
-/* bitmask to store number of minicolumn rows per thread */
-unsigned int rows_thread_bitmask;
-/* stores mask of bits for max rows at number of threads */
-unsigned int max_rows_mask;
+static pthread_attr_t threadattr;
+/* structure passed to the threads */
+static struct thread_data td[NUM_THREADS];
+/* represents number of minicolumn rows per thread */
+static uint32_t rows_thread_bitmask;
+/* represents theoretical maximum rows for number of threads */
+static uint32_t max_rows_mask;
 
-unsigned int layer4_width;
-unsigned int layer4_height;
-float local_mc_activity;
+static unsigned int layer4_width;
+static unsigned int layer4_height;
+static float local_mc_activity;
 
-struct layer* alloc_layer4(struct layer4_conf conf)
+static int32_t
+free_layer4 (struct layer *layer);
+
+struct layer*
+alloc_layer4 (struct layer4_conf conf)
 {
     struct layer *layer = NULL;
     unsigned int rem_rows;
-    register t, x, y;
+    uint32_t t, x, y;
 
     layer = (struct layer *)calloc(
         1, sizeof(struct layer));
-    if (!layer) {
-        fprintf(stderr, "no memory to init layer 4\n");
-        return NULL;
-    }
+    if (!layer)
+        goto alloc_mc_failed;
 
     layer->minicolumns =
         (struct minicolumn ***)calloc(
             conf.height, sizeof(struct minicolumn **));
-    if (!layer->minicolumns) {
-        fprintf(stderr, "no memory to init L4 minicols\n");
-        return NULL;
-    }
+    if (!layer->minicolumns)
+        goto alloc_mc_failed;
 
     for (y=0; y<conf.height; y++) {
         *(layer->minicolumns+y) =
-            (struct minicolumn **)calloc(
-                conf.width,
+            (struct minicolumn **)calloc(conf.width,
                 sizeof(struct minicolumn *));
-        if (!*(layer->minicolumns+y)) {
-            fprintf(stderr, "no memory to init L4 minicols\n");
-            return NULL;
-        }
+        if (!*(layer->minicolumns+y))
+            goto alloc_mc_failed;
         for (x=0; x<conf.width; x++) {
             *(*(layer->minicolumns+y)+x) =
                 (struct minicolumn *)calloc(
                     1, sizeof(struct minicolumn));
-            if (!*(*(layer->minicolumns+y)+x)) {
-                fprintf(stderr, "no memory to init L4 minicols\n");
-                return NULL;
-            }
+            if (!*(*(layer->minicolumns+y)+x))
+                goto alloc_mc_failed;
         }
     }
 
@@ -65,47 +62,56 @@ struct layer* alloc_layer4(struct layer4_conf conf)
 
     local_mc_activity = conf.colconf.local_activity;
 
-    /* partition minicolumns between multiple threads.
+    /* partition minicolumns between multiple threads. given
+       the number of threads, compute how many rows of minicolumns
+       can be stored?
 
-       with 4 threads, a 32 bit mask can encode each
-       thread's assigned rows in 8 bits, which limits the
-       count to 0xff (255).
+       1 thread: 32-bit mask can encode rows using all 32
+       bits, 0xffffffff (4294967295) rows at maximum.
+       2 threads: 16 bits, 0xffff (65535) rows.
+       4 threads: 8 bits, 0xff (255) rows
+       8 threads: 4 bits, 0xf (15) rows */
 
-       8 threads would have 4 bits each, 0xf (15) rows
-       max. */
+/*
+    max_rows_mask =
+        UINT_MAX >>
+            ((uint32_t)__WORDSIZE - ((uint32_t)(
+                ((float)sizeof(uint32_t)/NUM_THREADS)*8)));
+*/
 
     /* this does not always equal zero because it is integer
        math. */
     rem_rows =
         layer->height-layer->height/NUM_THREADS*NUM_THREADS;
-    max_rows_mask =
-        UINT_MAX >> (sizeof(unsigned int)*8-
-            ((unsigned int)(((float)
-                sizeof(unsigned int)/NUM_THREADS)*8)));
 
-    /* rows per thread vs max allowed in bitmask */
+    /* rows per thread vs maximum allowed */
+/*
     if (layer->height/NUM_THREADS+rem_rows > max_rows_mask) {
         fprintf(stderr, "%d threads not supported "
                         "for %u rows\n",
                 NUM_THREADS, layer->height);
         return NULL;
     }
+*/
 
     /* set the bitmask of minicolumn rows for each thread */
-    for (t=0; t<NUM_THREADS; t++) {
+/*    for (t=0; t<NUM_THREADS; t++) {*/
         /* the remainder rows are added to thread 0 */
-        rows_thread_bitmask |=
+/*        rows_thread_bitmask |=
             (layer->height/NUM_THREADS+(!t?rem_rows:0)) <<
-                t * ((unsigned int)(
-                    ((float)sizeof(unsigned int)/NUM_THREADS)*8));
+                t * ((uint32_t)(
+                    ((float)sizeof(uint32_t)/NUM_THREADS)*8));
     }
+*/
     /* set the attributes of thread structures */
     for (t=0; t<NUM_THREADS; t++) {
         td[t].minicolumns = layer->minicolumns;
         td[t].column_complexity = conf.colconf.column_complexity;
-        td[t].row_num = 
-            max_rows_mask & (rows_thread_bitmask >> t * ((unsigned int)(
-                ((float)sizeof(unsigned int)/NUM_THREADS)*8)));
+        td[t].row_num = layer->height/NUM_THREADS+(!t?rem_rows:0);
+/*
+            max_rows_mask & (rows_thread_bitmask >> t * ((uint32_t)(
+                ((float)sizeof(uint32_t)/NUM_THREADS)*8)));
+*/
         td[t].row_width = layer->width;
 
         td[t].row_start =
@@ -118,12 +124,18 @@ struct layer* alloc_layer4(struct layer4_conf conf)
     pthread_attr_init(&threadattr);
     pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
+    alloc_mc_failed:
+        free_layer4(layer);
+        fprintf(stderr, "no memory to alloc layer 4\n");
+        return NULL;
+
     return layer;
 }
 
-int free_layer4(struct layer *layer)
+int32_t
+free_layer4 (struct layer *layer)
 {
-    register x, y;
+    uint32_t x, y;
 
     /* free the layer's minicolumns */
     for (y=0; y<layer->height; y++) {
@@ -140,16 +152,17 @@ int free_layer4(struct layer *layer)
     free(layer);
 }
 
-int init_l4_minicol_receptive_flds(
+int32_t
+init_l4_minicol_receptive_flds(
     struct layer *layer,
     sdr_t input,
     pattern_sz input_sz,
     float rec_fld_perc
 ) {
-    register x, y, xidx, yidx;
-    unsigned int xcent, ycent;
-    unsigned int minx, miny, maxx, maxy;
-    unsigned int rec_fld_sz, sqr;
+    uint32_t x, y, xidx, yidx;
+    uint32_t xcent, ycent;
+    uint32_t minx, miny, maxx, maxy;
+    uint32_t rec_fld_sz, sqr;
     struct synapse *synptr = NULL;
 
     /* validate input dimensions are compatible. the input

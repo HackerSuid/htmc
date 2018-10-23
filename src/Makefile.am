@@ -6,4 +6,4 @@ libhtmc_la_SOURCES = htm.c \
                     layer6_algs.c \
                     minicolumn.c \
                     parse_conf.c
-AM_CFLAGS = -pedantic -Werror -ggdb -mfpmath=sse -mmmx -msse -msse2
+AM_CFLAGS = -std=c99 -pedantic -Werror -ggdb -mfpmath=sse -mmmx -msse -msse2

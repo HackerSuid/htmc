@@ -18,9 +18,12 @@ input_patterns *ip_container;
 /* pointers to layer objects */
 struct layer *layer4, *layer6;
 
+static int32_t get_codec_input (void);
+
 /* parse htm configuration parameters. get first input
 pattern set from codec. then initialize the htm layers */
-int init_htm (codec_cb cb)
+int32_t
+init_htm (codec_cb cb)
 {
     if (!cb) {
         fprintf(stderr, "codec callback is null\n");
@@ -31,11 +34,6 @@ int init_htm (codec_cb cb)
         return 1;
 
     codec_callback = cb;
-
-    if (!get_codec_input()) {
-        fprintf(stderr, "failed to call codec\n");
-        return 1;
-    }
 
     /* initialize each htm layer */
     if (!(layer6=alloc_layer6(htmconf.layer6conf))) {
@@ -57,14 +55,20 @@ int init_htm (codec_cb cb)
         return 1;
     }
 
+    if (get_codec_input()) {
+        fprintf(stderr, "call to codec failed\n");
+        return 1;
+    }
+
     printf("[*] HTM initialization complete.\n");
 
     return 0;
 }
 
-void copy_out_cb_ip(input_patterns *cb_ip, input_patterns *ipc)
+static void
+copy_out_cb_ip (input_patterns *cb_ip, input_patterns *ipc)
 {
-    register b;
+    uint32_t b;
 
     if (cb_ip->sensory_pattern) {
         for (b=0; b<cb_ip->sensory_sz.height; b++) {
@@ -85,10 +89,11 @@ void copy_out_cb_ip(input_patterns *cb_ip, input_patterns *ipc)
         ipc->location_pattern = NULL;
 }
 
-input_patterns* alloc_ipc(input_patterns *cb_ip)
+static input_patterns*
+alloc_ipc (input_patterns *cb_ip)
 {
     input_patterns *ipc = NULL;
-    register b;
+    uint32_t b;
 
     ipc = (input_patterns *)calloc(1, sizeof(input_patterns));
     if (!ipc)
@@ -126,9 +131,10 @@ input_patterns* alloc_ipc(input_patterns *cb_ip)
         return NULL;
 }
 
-void free_ip(input_patterns *patts)
+static void
+free_ip (input_patterns *patts)
 {
-    register b;
+    uint32_t b;
 
     for (b=0; b<patts->sensory_sz.height; b++)
         free(patts->sensory_pattern[b]);
@@ -141,25 +147,42 @@ void free_ip(input_patterns *patts)
 }
 
 
-int get_codec_input(void)
+static int32_t
+get_codec_input (void)
 {
     input_patterns *cb_ip = NULL;
-    register d;
+    uint32_t d;
 
+/*
     cb_ip = codec_callback();
+*/
+    free(ip_container); /* nullptr is fine */
+    ip_container = codec_callback();
+
+    if (!ip_container) {
+        fprintf(stderr, "codec returned null container.\n");
+        return 1;
+    }
+    if (!ip_container->sensory_pattern) {
+        fprintf(stderr, "codec returned null sensory pattern.\n");
+        return 1;
+    }
 
     /* memory for input pattern container needs allocated
        the first time through here */
+/*
     if (!ip_container)
         ip_container = alloc_ipc(cb_ip);
 
     copy_out_cb_ip(cb_ip, ip_container);
 
     free_ip(cb_ip);
-    return 1;
+*/
+    return 0;
 }
 
-int process_subcortical_input (void)
+int32_t
+process_subcortical_input (void)
 {
     if (!layer4 || !ip_container) {
         fprintf(stderr, "must init the htm first.\n");
@@ -170,20 +193,22 @@ int process_subcortical_input (void)
         return 1;
 
     /* get next input pattern from codec */
-    if (!get_codec_input()) {
-        fprintf(stderr, "failed getting next pattern\n");
+    if (get_codec_input()) {
+        fprintf(stderr, "failed to get next pattern from codec\n");
         return 1;
     }
 
     return 0;
 }
 
-struct layer* get_layer4()
+struct layer*
+get_layer4 (void)
 {
     return layer4;
 }
 
-input_patterns* get_htm_input_patterns(void)
+input_patterns*
+get_htm_input_patterns (void)
 {
     return ip_container;
 }
