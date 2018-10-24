@@ -1,25 +1,26 @@
 /* Prototypes and definitions for HTM implementation. */
 
 /* htmc requires some POSIX and GNU extensions, which are
-not part of ISO C, such as
+not part of ISO C99, such as
  - strdup()
  - secure_getenv() */
 #ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
+# define _POSIX_C_SOURCE 200809L
 #endif
 
 #ifndef _DEFAULT_SOURCE
-#define _DEFAULT_SOURCE
+# define _DEFAULT_SOURCE
 #endif
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+# define _GNU_SOURCE
 #endif
 
 #ifndef HTM_H_
-#define HTM_H_ 1
+# define HTM_H_ 1
 
-#define DEFAULT_CONF_PATH "/etc/htmc.conf"
+/* trigraph srquence, neat trick */
+??=define DEFAULT_CONF_PATH "/etc/htmc.conf"
 
 /* C99 fixed-width data types */
 #include <stdint.h>
@@ -42,16 +43,13 @@ typedef char** sdr_t;
 
 typedef struct
 {
-    unsigned int height;
-    unsigned int width;
+    uint32_t height, width;
 } pattern_sz;
 
 typedef struct
 {
-    sdr_t sensory_pattern;
-    sdr_t location_pattern;
-    pattern_sz sensory_sz;
-    pattern_sz location_sz;
+    sdr_t sensory_pattern, location_pattern;
+    pattern_sz sensory_sz, location_sz;
 } input_patterns;
 
 struct layer6_conf
@@ -62,10 +60,10 @@ struct layer6_conf
 struct layer4_conf
 {
     uint32_t height, width;
-    short cells_per_col;
+    uint16_t cells_per_col;
     char sensorimotor;
     uint32_t loc_patt_sz;
-    short loc_patt_bits;
+    uint16_t loc_patt_bits;
 
     struct columns_conf
     {
@@ -90,22 +88,25 @@ typedef input_patterns* (*codec_cb)(void);
 
 /* initialize the htmc library. parses the XML configuration
    file and stores the node data in an htm_conf structure. */
-int32_t init_htm (codec_cb cb);
+int32_t
+init_htm (codec_cb cb);
 
 /* htm learning and inference algorithms implemented
    procedurally */
-int32_t process_subcortical_input (void);
+int32_t
+process_subcortical_input (void);
 
-struct layer* get_layer4 (void);
-input_patterns* get_htm_input_patterns (void);
+struct layer*
+get_layer4 (void);
+
+input_patterns*
+get_htm_input_patterns (void);
 
 /* layer functions & data structures */
 struct layer
 {
     struct minicolumn ***minicolumns;
-    uint32_t height;
-    uint32_t width;
-    uint32_t inhibition_radius;
+    uint32_t height, width, inhibition_radius;
 };
 
 
