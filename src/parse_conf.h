@@ -34,7 +34,7 @@ typedef struct xml_element
     char required;
 } xml_el;
 
-int parse_htm_conf (void);
+int32_t parse_htm_conf (void);
 
 #endif
 

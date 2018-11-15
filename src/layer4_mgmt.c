@@ -7,17 +7,18 @@
 #include "synapse.h"
 #include "threads.h"
 
-static pthread_attr_t threadattr;
+/* globals declared extern */
+pthread_attr_t threadattr;
+unsigned int layer4_width;
+unsigned int layer4_height;
+float local_mc_activity;
+
 /* structure passed to the threads */
-static struct thread_data td[NUM_THREADS];
+struct thread_data td[NUM_THREADS];
 /* represents number of minicolumn rows per thread */
 static uint32_t rows_thread_bitmask;
 /* represents theoretical maximum rows for number of threads */
 static uint32_t max_rows_mask;
-
-static unsigned int layer4_width;
-static unsigned int layer4_height;
-static float local_mc_activity;
 
 static int32_t
 free_layer4 (struct layer *layer);
@@ -25,31 +26,26 @@ free_layer4 (struct layer *layer);
 struct layer*
 alloc_layer4 (struct layer4_conf conf)
 {
-    struct layer *layer = NULL;
+    struct layer *layer=NULL;
     unsigned int rem_rows;
     uint32_t t, x, y;
 
-    layer = (struct layer *)calloc(
-        1, sizeof(struct layer));
-    if (!layer)
+    if (!(layer = calloc(1, sizeof(struct layer))))
         goto alloc_mc_failed;
 
-    layer->minicolumns =
-        (struct minicolumn ***)calloc(
+    layer->minicolumns = calloc(
             conf.height, sizeof(struct minicolumn **));
     if (!layer->minicolumns)
         goto alloc_mc_failed;
 
     for (y=0; y<conf.height; y++) {
-        *(layer->minicolumns+y) =
-            (struct minicolumn **)calloc(conf.width,
-                sizeof(struct minicolumn *));
+        *(layer->minicolumns+y) = calloc(
+            conf.width, sizeof(struct minicolumn *));
         if (!*(layer->minicolumns+y))
             goto alloc_mc_failed;
         for (x=0; x<conf.width; x++) {
-            *(*(layer->minicolumns+y)+x) =
-                (struct minicolumn *)calloc(
-                    1, sizeof(struct minicolumn));
+            *(*(layer->minicolumns+y)+x) = calloc(
+                1, sizeof(struct minicolumn));
             if (!*(*(layer->minicolumns+y)+x))
                 goto alloc_mc_failed;
         }
@@ -124,12 +120,12 @@ alloc_layer4 (struct layer4_conf conf)
     pthread_attr_init(&threadattr);
     pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
+    return layer;
+
     alloc_mc_failed:
         free_layer4(layer);
         fprintf(stderr, "no memory to alloc layer 4\n");
         return NULL;
-
-    return layer;
 }
 
 int32_t

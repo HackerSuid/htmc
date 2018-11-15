@@ -131,7 +131,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libhtmc_la_LIBADD =
-am_libhtmc_la_OBJECTS = htm.lo layer4_mgmt.lo layer4_algs.lo \
+am_libhtmc_la_OBJECTS = htm.lo utils.lo layer4_mgmt.lo layer4_algs.lo \
 	layer6_mgmt.lo layer6_algs.lo minicolumn.lo parse_conf.lo
 libhtmc_la_OBJECTS = $(am_libhtmc_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -317,6 +317,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libhtmc.la
 libhtmc_la_SOURCES = htm.c \
+                    utils.c \
                     layer4_mgmt.c \
                     layer4_algs.c \
                     layer6_mgmt.c \
@@ -410,6 +411,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layer6_mgmt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minicolumn.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utils.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

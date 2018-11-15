@@ -45,6 +45,7 @@ init_htm (codec_cb cb)
         return 1;
     }
     /* L4 is the second layer in the feedforward circuit */
+/*
     if (init_l4_minicol_receptive_flds(
             layer4,
             ip_container->sensory_pattern,
@@ -54,6 +55,7 @@ init_htm (codec_cb cb)
         fprintf(stderr, "failed layer4 initialization\n");
         return 1;
     }
+*/
 
     if (get_codec_input()) {
         fprintf(stderr, "call to codec failed\n");
@@ -66,7 +68,8 @@ init_htm (codec_cb cb)
 }
 
 static void
-copy_out_cb_ip (input_patterns *cb_ip, input_patterns *ipc)
+copy_out_cb_ip (input_patterns * restrict cb_ip,
+input_patterns * restrict ipc)
 {
     uint32_t b;
 

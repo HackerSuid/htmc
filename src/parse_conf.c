@@ -1,11 +1,27 @@
 #include "htm.h"
 #include "parse_conf.h"
+#include "utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <libxml/tree.h>
+
+#define CONF_NODE(OBJ, FIELD, TYPE, REQ) \
+    { #FIELD, &OBJ.FIELD, TYPE, REQ }
+
+#define HTMCONF_NODE(FIELD, TYPE, REQ) \
+    CONF_NODE(htmconf, FIELD, TYPE, REQ)
+
+#define L6CONF_NODE(FIELD, TYPE, REQ) \
+    CONF_NODE(htmconf.layer6conf, FIELD, TYPE, REQ)
+
+#define L4CONF_NODE(FIELD, TYPE, REQ) \
+    CONF_NODE(htmconf.layer4conf, FIELD, TYPE, REQ)
+
+#define COLCONF_NODE(FIELD, TYPE, REQ) \
+    CONF_NODE(htmconf.layer4conf.colconf, FIELD, TYPE, REQ)
 
 static int32_t
 set_conf_node_attr (xmlNodePtr node, xml_el attr);
@@ -14,88 +30,39 @@ struct htm_conf htmconf;
 
 xml_el htm_conf_attrs[] =
 {
+/*
     {
         "target",
         &htmconf.target,
         STRING, 1
     },
-    {
-        "allowBoosting",
-        &htmconf.allow_boosting,
-        BOOLEAN, 0
-    }
+*/
+    HTMCONF_NODE(target, STRING, 1),
+    HTMCONF_NODE(allow_boosting, BOOLEAN, 0)
 };
 
 xml_el layer6_conf_attrs[] =
 {
-    {
-        "numGCMs",
-        &htmconf.layer6conf.num_gcms,
-        ULONG, 1
-    },
-    {
-        "numCellsPerGCM",
-        &htmconf.layer6conf.num_cells_gcm,
-        ULONG, 1
-    }
+    L6CONF_NODE(num_gcms, ULONG, 1),
+    L6CONF_NODE(num_cells_per_gcm, ULONG, 1)
 };
 
 xml_el layer4_conf_attrs[] =
 {
-    {
-        "height",
-        &htmconf.layer4conf.height,
-        ULONG, 1
-    },
-    {
-        "width",
-        &htmconf.layer4conf.width,
-        ULONG, 1
-    },
-    {
-        "cellsPerCol",
-        &htmconf.layer4conf.cells_per_col,
-        SHORT, 1
-    },
-    {
-        "locationPatternSz",
-        &htmconf.layer4conf.loc_patt_sz,
-        ULONG, 1
-    },
-    {
-        "locationPatternBits",
-        &htmconf.layer4conf.loc_patt_bits,
-        SHORT, 1
-    }
+    L4CONF_NODE(height, ULONG, 1),
+    L4CONF_NODE(width, ULONG, 1),
+    L4CONF_NODE(cells_per_col, SHORT, 1),
+    L4CONF_NODE(loc_patt_sz, ULONG, 1),
+    L4CONF_NODE(loc_patt_bits, SHORT, 1)
 };
 
 xml_el columns_conf_attrs[] =
 {
-    {
-        "recFieldSz",
-        &htmconf.layer4conf.colconf.rec_field_sz,
-        FLOAT, 1
-    },
-    {
-        "localActivity",
-        &htmconf.layer4conf.colconf.local_activity,
-        FLOAT, 1
-    },
-    {
-        "columnComplexity",
-        &htmconf.layer4conf.colconf.column_complexity,
-        FLOAT, 1
-    },
-    {
-        "highTier",
-        &htmconf.layer4conf.colconf.high_tier,
-        BOOLEAN, 1
-    },
-    {
-        "activityCycleWindow",
-        &htmconf.layer4conf.colconf.activity_cycle_window,
-        ULONG, 1
-    }
+    COLCONF_NODE(rec_field_sz, FLOAT, 1),
+    COLCONF_NODE(local_activity, FLOAT, 1),
+    COLCONF_NODE(column_complexity, FLOAT, 1),
+    COLCONF_NODE(high_tier, BOOLEAN, 1),
+    COLCONF_NODE(activity_cycle_window, ULONG, 1)
 };
 
 int parse_htm_conf (void)
@@ -112,7 +79,7 @@ int parse_htm_conf (void)
     unsigned long col_conf_nodes=0;
     uint32_t c;
 
-    if ((conf_env=(char *)secure_getenv("HTM_CONF_PATH"))!=NULL)
+    if ((conf_env=(char *)getenv("HTM_CONF_PATH"))!=NULL)
         conf_path=conf_env;
     if (access(conf_path, R_OK)<0) {
         perror("Could not open config file for reading");
@@ -206,27 +173,6 @@ void free_sublayer_confs()
     /* free the htmconf layerconf linked list */
 }
 
-/* TODO delete this function later
-void update_sublayer_conf_attrs(
-    struct sublayer_conf *conf,
-    unsigned long conf_nodes)
-{
-    register c;
-    unsigned long offset, base;
-
-    base = (unsigned long)sublayer_conf_attrs[0].conf_data;
-*/
-    /* adjust pointers using the offset from the base
-       struct address. the code doesn't need to even
-       reference the attribute names this way. */
-/*    for (c=0; c<conf_nodes; c++) {
-        offset =
-            (unsigned long)sublayer_conf_attrs[c].conf_data - base;
-        sublayer_conf_attrs[c].conf_data =
-            (void *)((unsigned long)conf+offset);
-    }
-}*/
-
 unsigned long cnt_xml_node_attributes(xmlNodePtr node)
 {
     xmlAttr *attr=NULL;
@@ -277,8 +223,8 @@ set_conf_node_attr (xmlNodePtr node, xml_el attr)
                 *(char *)attr.conf_data = 1;
             break;
         case STRING:
-            *(char **)attr.conf_data =
-                (char *)strdup((char *)xmlstr);
+            attr.conf_data =
+                strdup((char *)xmlstr);
             break;
         case ULONG:
             *(long *)attr.conf_data =

@@ -1,62 +1,59 @@
-/* Prototypes and definitions for HTM implementation. */
-
-/* htmc requires some POSIX and GNU extensions, which are
-not part of ISO C99, such as
- - strdup()
- - secure_getenv() */
-#ifndef _POSIX_C_SOURCE
-# define _POSIX_C_SOURCE 200809L
-#endif
-
-#ifndef _DEFAULT_SOURCE
-# define _DEFAULT_SOURCE
-#endif
-
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE
-#endif
+/* Prototypes and definitions for HTM implementation in
+ISO 1999 Standard C. */
 
 #ifndef HTM_H_
 # define HTM_H_ 1
 
-/* trigraph srquence, neat trick */
+/* trigraph sequence, neat trick */
 ??=define DEFAULT_CONF_PATH "/etc/htmc.conf"
 
-/* C99 fixed-width data types */
+/* C99 fixed-width data types for increased integer
+portability */
 #include <stdint.h>
 
+/* inform C++ callers that this is C code */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* researched more compact ways of storing the sdr bits
-   but bitfields and bitwise operations are apparently
-   even worse performance than bytes or words due to
-   unpacking/deconstruction of the data. */
+/* I have researched more compact ways of storing the sdr
+bits, but bitfields and bitwise operations are apparently
+worse performance than bytes or words due to
+unpacking/deconstruction of the data. */
 
-/* the sdr is two-dimensional, to make "horizontal/later
-l"
-   connections and "vertical" columns a bit more
-   straightforward. */
-
+/* the sdr is two-dimensional, to make "horizontal" and
+"lateral" synapses and "vertical" columns a bit more
+straightforward. */
 typedef char** sdr_t;
 
+/* data structure that describes the size of a pattern in
+the HTM, which may or may not be an sdr */
 typedef struct
 {
     uint32_t height, width;
 } pattern_sz;
 
+/* data structure containing the various patterns within
+the input provided by the external encoder */
 typedef struct
 {
     sdr_t sensory_pattern, location_pattern;
     pattern_sz sensory_sz, location_sz;
 } input_patterns;
 
+/* declaration of a pointer type to the encoder callback
+function. */
+typedef input_patterns* (*codec_cb)(void);
+
+/* parsed configuration parameters for the layer 6 HTM
+object. */
 struct layer6_conf
 {
-    uint32_t num_gcms, num_cells_gcm;
+    uint32_t num_gcms, num_cells_per_gcm;
 };
 
+/* parsed configuration parameters for the layer 4 HTM
+object. */
 struct layer4_conf
 {
     uint32_t height, width;
@@ -76,6 +73,7 @@ struct layer4_conf
 
 };
 
+/* parsed configuration parameters for the HTM object. */
 struct htm_conf
 {
     char *target;
@@ -84,25 +82,24 @@ struct htm_conf
     struct layer4_conf layer4conf;
 };
 
-typedef input_patterns* (*codec_cb)(void);
-
-/* initialize the htmc library. parses the XML configuration
-   file and stores the node data in an htm_conf structure. */
-int32_t
+/* initialize the htmc library: parses the XML configuration
+file, stores the node data in an htm_conf structure, and
+sets the encoder callback. */
+extern int32_t
 init_htm (codec_cb cb);
 
-/* htm learning and inference algorithms implemented
-   procedurally */
-int32_t
+/* calls the HTM learning and inference algorithms on
+the encoded input patterns. */
+extern int32_t
 process_subcortical_input (void);
 
-struct layer*
+extern struct layer*
 get_layer4 (void);
 
-input_patterns*
+extern input_patterns*
 get_htm_input_patterns (void);
 
-/* layer functions & data structures */
+/* HTM "layer" functions & data structures */
 struct layer
 {
     struct minicolumn ***minicolumns;
@@ -110,7 +107,7 @@ struct layer
 };
 
 
-/* minicolumn functions & data structures */
+/* HTM "minicolumn" functions & data structures */
 struct minicolumn
 {
     uint32_t overlap;
@@ -126,7 +123,7 @@ struct minicolumn
     struct minicolumn **neighbors;
 };
 
-unsigned char
+extern unsigned char
 mc_active_at (struct minicolumn *mc, uint32_t t);
 
 #ifdef __cplusplus
