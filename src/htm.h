@@ -1,5 +1,5 @@
-/* Prototypes and definitions for HTM implementation in
-ISO 1999 Standard C. */
+/* Public prototypes and definitions interface for HTM implementation
+in ISO 1999 Standard C (C99). */
 
 #ifndef HTM_H_
 # define HTM_H_ 1
@@ -10,6 +10,18 @@ ISO 1999 Standard C. */
 /* C99 fixed-width data types for increased integer
 portability */
 #include <stdint.h>
+
+/* Renaming trick to make sure users include the htm
+interface. This will cause linker errors if they don't. The
+benefit is that function prototypes will be properly enforced
+by the compiler. Without including the interface, C allows
+the user to misuse it. NOTE: I think this will increase compile
+times by some amount. */
+#define init_htm INT_init_htm
+#define process_subcortical_input INTL_process_subcortical_input
+#define get_layer4 INT_get_layer4
+#define get_htm_input_patterns INT_get_htm_input_patterns
+#define mc_active_at INT_mc_active_at
 
 /* inform C++ callers that this is C code */
 #ifdef __cplusplus
@@ -22,12 +34,12 @@ worse performance than bytes or words due to
 unpacking/deconstruction of the data. */
 
 /* the sdr is two-dimensional, to make "horizontal" and
-"lateral" synapses and "vertical" columns a bit more
-straightforward. */
+"lateral" synapses and "vertical" reflect the spatial structure
+of biological signals. */
 typedef char** sdr_t;
 
 /* data structure that describes the size of a pattern in
-the HTM, which may or may not be an sdr */
+the HTM, which may or may not be sparse. */
 typedef struct
 {
     uint32_t height, width;
@@ -45,46 +57,8 @@ typedef struct
 function. */
 typedef input_patterns* (*codec_cb)(void);
 
-/* parsed configuration parameters for the layer 6 HTM
-object. */
-struct layer6_conf
-{
-    uint32_t num_gcms, num_cells_per_gcm;
-};
-
-/* parsed configuration parameters for the layer 4 HTM
-object. */
-struct layer4_conf
-{
-    uint32_t height, width;
-    uint16_t cells_per_col;
-    char sensorimotor;
-    uint32_t loc_patt_sz;
-    uint16_t loc_patt_bits;
-
-    struct columns_conf
-    {
-        float rec_field_sz;
-        float local_activity;
-        float column_complexity;
-        char high_tier;
-        uint32_t activity_cycle_window;
-    } colconf;
-
-};
-
-/* parsed configuration parameters for the HTM object. */
-struct htm_conf
-{
-    char *target;
-    char allow_boosting;
-    struct layer6_conf layer6conf;
-    struct layer4_conf layer4conf;
-};
-
 /* initialize the htmc library: parses the XML configuration
-file, stores the node data in an htm_conf structure, and
-sets the encoder callback. */
+file, and sets the encoder callback. */
 extern int32_t
 init_htm (codec_cb cb);
 

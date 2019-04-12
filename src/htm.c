@@ -1,3 +1,5 @@
+/* Private implementation of the htm interface. */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

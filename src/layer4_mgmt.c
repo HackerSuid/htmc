@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+
 #include "layer.h"
 #include "minicolumn.h"
 #include "synapse.h"

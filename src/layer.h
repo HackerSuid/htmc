@@ -2,6 +2,7 @@
 #define LAYER_H_ 1
 
 #include "htm.h"
+#include "conf.h"
 #include "parse_conf.h"
 
 #define NUM_THREADS 1

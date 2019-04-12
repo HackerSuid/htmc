@@ -54,7 +54,7 @@ void check_minicolumn_activation(
     active, including this one */
     max_active =
         (
-        ((unsigned int)nptr-(unsigned int)(mc->neighbors)
+        ((uintptr_t)nptr-(uintptr_t)(mc->neighbors)
          + 1) / sizeof(struct minicolumn *)
         ) * local_activity;
     /* shift and set minicolumn activity mask's LSB */

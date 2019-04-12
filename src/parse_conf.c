@@ -1,4 +1,5 @@
 #include "htm.h"
+#include "conf.h"
 #include "parse_conf.h"
 #include "utils.h"
 
