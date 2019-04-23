@@ -29,7 +29,7 @@ warning. */
             (r), (c), (rep)->rows, (rep)->cols) : \
         (operation)
 
-/* set bit in representation to 1. rep must be a double
+/* set bit in representation to 1. rep must be a
 pointer to a repr_t to allow modifying the memory. */
 #define SET_REPR_BIT(rep, r, c) \
     VALID_MODIFY( \

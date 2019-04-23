@@ -9,8 +9,21 @@ new_repr(uint32_t r, uint32_t c)
     repr_t *repr = (repr_t *)calloc(
         sizeof(repr_t), sizeof(repr_t));
 
+    if (repr == NULL) {
+        fprintf(stderr, "[ERR] Failed memory allocation for (%u, %u)"
+            " pattern repr_t\n", r, c);
+        return NULL;
+    }
+
     repr->repr = (uint32_t *)calloc(
         INT_LEN(r, c), SZ);
+
+    if (repr->repr == NULL) {
+        fprintf(stderr, "[ERR] Failed memory allocation for (%u, %u)"
+            " pattern repr_t\n", r, c);
+        return NULL;
+    }
+
     repr->rows = r;
     repr->cols = c;
 
