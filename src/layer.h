@@ -1,6 +1,9 @@
 #ifndef LAYER_H_
 #define LAYER_H_ 1
 
+/* import interface for input pattern representations from encoders*/
+#include "repr.h"
+
 #include "htm.h"
 #include "conf.h"
 #include "parse_conf.h"
@@ -15,8 +18,7 @@ alloc_layer6 (struct layer6_conf conf);
 int32_t
 init_l4_minicol_receptive_flds (
     struct layer *layer,
-    sdr_t input,
-    pattern_sz input_sz,
+    repr_t *input,
     float rec_fld_perc
 );
 int32_t

@@ -1,6 +1,8 @@
 #ifndef SYNAPSE_H_
 #define SYNAPSE_H_ 1
 
+#include <stddef.h>
+
 #define CONNECTED_PERM  0.200
 #define PERM_INC        0.150
 #define PERM_DEC        0.100
@@ -9,7 +11,7 @@
 struct synapse
 {
     float perm;
-    char *source;
+    repr_t *source;
     unsigned int srcx, srcy;
 };    
 

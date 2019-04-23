@@ -152,8 +152,7 @@ free_layer4 (struct layer *layer)
 int32_t
 init_l4_minicol_receptive_flds(
     struct layer *layer,
-    sdr_t input,
-    pattern_sz input_sz,
+    repr_t *input,
     float rec_fld_perc
 ) {
     uint32_t x, y, xidx, yidx;
@@ -165,19 +164,19 @@ init_l4_minicol_receptive_flds(
     /* validate input dimensions are compatible. the input
        dimensions must be at least equal to that of the
        minicolumns. */
-    if (input_sz.height>1 && input_sz.width>1) {
+    if (input->rows>1 && input->cols>1) {
         /* Input pattern is 2-dimensional. */
-        if (layer->height > input_sz.height) {
+        if (layer->height > input->rows) {
             fprintf(stderr, "input height less than minicolumn height\n");
             return 1;
         }
-        if (layer->width > input_sz.width) {
+        if (layer->width > input->cols) {
             fprintf(stderr, "input width less than minicolumn width\n");
             return 1;
         }
-    } else if (input_sz.height==1 && input_sz.width>1) {
+    } else if (input->rows==1 && input->cols>1) {
         /* Input is 1-dimensional. */
-        if (layer->width > input_sz.width) {
+        if (layer->width > input->cols) {
             fprintf(stderr, "input width less than minicolumn width\n");
             return 1;
         }
@@ -188,33 +187,33 @@ init_l4_minicol_receptive_flds(
     }
 
     /* compute square of overall receptive field size */
-    sqr = sqrt(input_sz.width*input_sz.height*rec_fld_perc);
+    sqr = sqrt(input->cols*input->rows*rec_fld_perc);
     /* radius of the square */
      sqr /= 2;
 
     for (y=0; y<layer->height; y++) {
         for (x=0; x<layer->width; x++) {
             /* compute the natural center over the input */
-            xcent = x*(input_sz.width/layer->width) +
-                    input_sz.width/layer->width/2;
+            xcent = x*(input->cols/layer->width) +
+                    input->cols/layer->width/2;
             ycent = 0; /* true always when input is 1D */
-            if (input_sz.height>1)
-                ycent = y*(input_sz.height/layer->height) +
-                        input_sz.height/layer->height/2;
+            if (input->rows>1)
+                ycent = y*(input->rows/layer->height) +
+                        input->rows/layer->height/2;
             /*printf("xcent %u ycent %u\n", xcent, ycent);*/
             layer->minicolumns[y][x]->input_xcent = xcent;
             layer->minicolumns[y][x]->input_ycent = ycent;
 
             /* compute number of synapses */
-            maxx = xcent+sqr >= input_sz.width?
-                input_sz.width - 1 : xcent+sqr;
+            maxx = xcent+sqr >= input->cols?
+                input->cols - 1 : xcent+sqr;
             maxy = 0;
-            if (input_sz.height>1)
-                maxy = ycent+sqr >= input_sz.height?
-                    input_sz.height - 1 : ycent + sqr;
+            if (input->rows>1)
+                maxy = ycent+sqr >= input->rows?
+                    input->rows - 1 : ycent + sqr;
             minx = xcent < sqr ? 0 : xcent - sqr;
             miny = 0;
-            if (input_sz.height>1)
+            if (input->rows>1)
                 miny = ycent < sqr ? 0 : ycent - sqr;
 
             (*(*(layer->minicolumns+y)+x))->num_synapses =
@@ -234,7 +233,7 @@ init_l4_minicol_receptive_flds(
             synptr = (*(*(layer->minicolumns+y)+x))->proximal_dendrite_segment;
             for (yidx=miny; yidx<maxy; yidx++) {
                 for (xidx=minx; xidx<maxx; xidx++) {
-                    synptr->source = &input[yidx][xidx];
+                    synptr->source = input;
                     synptr->perm = CONNECTED_PERM;
                     synptr->srcx = xidx;
                     synptr->srcy = yidx;

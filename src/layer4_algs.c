@@ -231,7 +231,7 @@ compute_overlaps (void *thread_data)
             synptr = (*(*(td->minicolumns+y)+x))->proximal_dendrite_segment;
             for (s=0; s<num_syns; s++) {
                 if (synptr->perm >= CONNECTED_PERM &&
-                    *(synptr->source) == 1)
+                    TEST_REPR_BIT_FAST(synptr->source, synptr->srcy, synptr->srcx))
                     (*(*(td->minicolumns+y)+x))->overlap++;
                 synptr++;
             }

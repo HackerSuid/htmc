@@ -5,9 +5,13 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "htm.h"
+/* import interface for input pattern representations from encoders*/
+#include "repr.h"
+
 #include "parse_conf.h"
 #include "layer.h"
+
+#include "htm.h"
 
 /* the parsed htm config structure */
 extern struct htm_conf htmconf;
@@ -46,21 +50,19 @@ init_htm (codec_cb cb)
         fprintf(stderr, "failed layer4 allocation\n");
         return 1;
     }
-    /* L4 is the second layer in the feedforward circuit */
-/*
-    if (init_l4_minicol_receptive_flds(
-            layer4,
-            ip_container->sensory_pattern,
-            ip_container->sensory_sz,
-            htmconf.layer4conf.colconf.rec_field_sz)>0
-    ) {
-        fprintf(stderr, "failed layer4 initialization\n");
-        return 1;
-    }
-*/
 
     if (get_codec_input()) {
         fprintf(stderr, "call to codec failed\n");
+        return 1;
+    }
+
+    /* L4 is the second layer in the feedforward circuit */
+    if (init_l4_minicol_receptive_flds(
+            layer4,
+            ip_container->sensory_pattern,
+            htmconf.layer4conf.colconf.rec_field_sz)>0
+    ) {
+        fprintf(stderr, "failed layer4 initialization\n");
         return 1;
     }
 
@@ -69,6 +71,7 @@ init_htm (codec_cb cb)
     return 0;
 }
 
+/* not used atm...
 static void
 copy_out_cb_ip (input_patterns * restrict cb_ip,
 input_patterns * restrict ipc)
@@ -93,7 +96,9 @@ input_patterns * restrict ipc)
     } else
         ipc->location_pattern = NULL;
 }
+*/
 
+/* not used atm...
 static input_patterns*
 alloc_ipc (input_patterns *cb_ip)
 {
@@ -103,7 +108,7 @@ alloc_ipc (input_patterns *cb_ip)
     ipc = (input_patterns *)calloc(1, sizeof(input_patterns));
     if (!ipc)
         goto fail_ret;
-    /* allocate sensory pattern */
+    //allocate sensory pattern
     ipc->sensory_pattern = (sdr_t)calloc(
         1, sizeof(char *) * cb_ip->sensory_sz.height);
     if (!ipc->sensory_pattern)
@@ -111,10 +116,10 @@ alloc_ipc (input_patterns *cb_ip)
     for (b=0; b<cb_ip->sensory_sz.height; b++) {
         *(ipc->sensory_pattern+b) = (char *)calloc(
             1, sizeof(char) * cb_ip->sensory_sz.width);
-        /*if (!ipc->sensory_pattern[b])
-            goto fail_ret;*/
+        //if (!ipc->sensory_pattern[b])
+            //goto fail_ret;
     }
-    /* allocate location pattern */
+    //allocate location pattern
     ipc->location_pattern = (sdr_t)calloc(
         1, sizeof(char *) * cb_ip->location_sz.height);
     if (!ipc->location_pattern)
@@ -122,8 +127,8 @@ alloc_ipc (input_patterns *cb_ip)
     for (b=0; b<cb_ip->location_sz.height; b++) {
         *(ipc->location_pattern+b) = (char *)calloc(
             1, sizeof(char) * cb_ip->location_sz.width);
-        /*if (!ipc->location_pattern[b])
-            goto fail_ret;*/
+        //if (!ipc->location_pattern[b])
+            //goto fail_ret;
     }
 
     ipc->sensory_sz = cb_ip->sensory_sz;
@@ -135,7 +140,9 @@ alloc_ipc (input_patterns *cb_ip)
         fprintf(stderr, "Failed allocating memory for input pattetn.\n");
         return NULL;
 }
+*/
 
+/* not used atm...
 static void
 free_ip (input_patterns *patts)
 {
@@ -150,7 +157,7 @@ free_ip (input_patterns *patts)
     free(patts);
     patts = NULL;
 }
-
+*/
 
 static int32_t
 get_codec_input (void)
@@ -173,17 +180,17 @@ get_codec_input (void)
         return 1;
     }
 
-    /* memory for input pattern container needs allocated
-       the first time through here */
-/*
+/* not used atm...
+    //memory for input pattern container needs allocated
+       the first time through here
     if (!ip_container)
         ip_container = alloc_ipc(cb_ip);
 
     copy_out_cb_ip(cb_ip, ip_container);
 
     free_ip(cb_ip);
-*/
     return 0;
+*/
 }
 
 int32_t

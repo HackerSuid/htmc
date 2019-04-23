@@ -5,6 +5,9 @@
 #include "minicolumn.h"
 #include "synapse.h"
 
+/* import interface for input pattern representations from encoders*/
+#include "repr.h"
+
 int alloc_minicolumn_synapses(
     struct minicolumn *minicolumn
 ) {
@@ -63,7 +66,7 @@ void check_minicolumn_activation(
         /* modify synaptic permanence */
         synptr = mc->proximal_dendrite_segment;
         for (s=0; s<mc->num_synapses; s++) {
-            if (*(synptr->source))
+            if (TEST_REPR_BIT_FAST(synptr->source, synptr->srcy, synptr->srcx))
                 synptr->perm += PERM_INC;
             else
                 synptr->perm -= PERM_DEC;
