@@ -10,8 +10,8 @@
 
 #include "parse_conf.h"
 #include "layer.h"
-
 #include "htm.h"
+#include "utils.h"
 
 /* the parsed htm config structure */
 extern struct htm_conf htmconf;
@@ -32,7 +32,7 @@ int32_t
 init_htm (codec_cb cb)
 {
     if (!cb) {
-        fprintf(stderr, "codec callback is null\n");
+        ERR("codec callback is null\n");
         return 1;
     }
 
@@ -43,16 +43,16 @@ init_htm (codec_cb cb)
 
     /* initialize each htm layer */
     if (!alloc_layer6(htmconf.layer6conf)) {
-        fprintf(stderr, "[ERR] failed layer6 allocation\n");
+        ERR("Failed layer6 allocation\n");
         return 1;
     }
     if (!alloc_layer4(htmconf.layer4conf)) {
-        fprintf(stderr, "[ERR] failed layer4 allocation\n");
+        ERR("Failed layer4 allocation\n");
         return 1;
     }
 
     if (get_codec_input()) {
-        fprintf(stderr, "call to codec failed\n");
+        ERR("Call to codec failed\n");
         return 1;
     }
 
@@ -61,11 +61,11 @@ init_htm (codec_cb cb)
             ip_container->sensory_pattern,
             htmconf.layer4conf.colconf.rec_field_sz)>0
     ) {
-        fprintf(stderr, "[ERR] Failed layer4 initialization\n");
+        ERR("Failed layer4 initialization\n");
         return 1;
     }
 
-    printf("[INFO] HTM initialization complete.\n");
+    INFO("HTM initialization complete.\n");
 
     return 0;
 }
@@ -136,7 +136,7 @@ alloc_ipc (input_patterns *cb_ip)
     return ipc;
 
     fail_ret:
-        fprintf(stderr, "Failed allocating memory for input pattetn.\n");
+        ERR("Failed allocating memory for input pattetn.\n");
         return NULL;
 }
 */
@@ -171,11 +171,11 @@ get_codec_input (void)
     ip_container = codec_callback();
 
     if (!ip_container) {
-        fprintf(stderr, "codec returned null container.\n");
+        ERR("Codec returned null container.\n");
         return 1;
     }
     if (!ip_container->sensory_pattern) {
-        fprintf(stderr, "codec returned null sensory pattern.\n");
+        ERR("Codec returned null sensory pattern.\n");
         return 1;
     }
 
@@ -196,7 +196,7 @@ int32_t
 run_cortical_algorithm (void)
 {
     if (!layer4 || !ip_container) {
-        fprintf(stderr, "[ERR] You must init the htm first.\n");
+        ERR("You must init the htm first.\n");
         return 1;
     }
 
@@ -205,7 +205,7 @@ run_cortical_algorithm (void)
 
     /* get next input pattern from codec */
     if (get_codec_input()) {
-        fprintf(stderr, "failed to get next pattern from codec\n");
+        ERR("Failed to get next pattern from codec\n");
         return 1;
     }
 

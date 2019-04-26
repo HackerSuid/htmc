@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "layer.h"
+#include "utils.h"
 
 struct layer*
 alloc_layer6 (struct layer6_conf conf)
@@ -9,7 +10,7 @@ alloc_layer6 (struct layer6_conf conf)
 
     layer = (struct layer *)calloc(1, sizeof(struct layer));
     if (!layer) {
-        fprintf(stderr, "no memory to init layer 6\n");
+        ERR("no memory to init layer 6\n");
         return NULL;
     }
 
