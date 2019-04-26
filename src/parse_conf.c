@@ -87,23 +87,23 @@ int parse_htm_conf (void)
         goto fail_jmp;
     }
 
-    printf("[*] Parsing configuration: %s\n", conf_path);
+    INFO("[*] Parsing configuration: %s\n", conf_path);
 
     /* ignore whitespace "text" nodes between nodes */
     xmlKeepBlanksDefault(0);
     if ((doc=xmlParseFile(conf_path))==NULL) {
-        fprintf(stderr, "Failed to parse %s\n", conf_path);
+        ERR("Failed to parse %s\n", conf_path);
         goto fail_jmp;
     }
     /* parse htm root node attributes */
     if ((node = xmlDocGetRootElement(doc))==NULL) {
-        fprintf(stderr, "Config file %s seems empty\n",
+        ERR("Config file %s seems empty\n",
             conf_path);
         xmlFreeDoc(doc);
         goto fail_jmp;
     }
     if (xmlStrcmp(node->name, (const xmlChar *)"Htm")) {
-        fprintf(stderr, "Htm config node missing/misplaced\n");
+        ERR("Htm config node missing/misplaced\n");
         goto fail_jmp;
     }
 
@@ -116,7 +116,7 @@ int parse_htm_conf (void)
     htm_conf_nodes = sizeof(htm_conf_attrs)/sizeof(xml_el);
     for (c=0; c<htm_conf_nodes; c++) {
         if (set_conf_node_attr(node, htm_conf_attrs[c])) {
-            fprintf(stderr, "Conf parsing failed at attribute %s\n",
+            ERR("Conf parsing failed at attribute %s\n",
             htm_conf_attrs[c].name);
             goto fail_jmp;
         }
@@ -125,7 +125,7 @@ int parse_htm_conf (void)
     /* parse layer4 node attributes */
     node = node->xmlChildrenNode;
     if (xmlStrcmp(node->name, (const xmlChar *)"Layer4")) {
-        fprintf(stderr, "Layer4 config node seems missing/misplaced\n");
+        ERR("Layer4 config node seems missing/misplaced\n");
         goto fail_jmp;
     }
 
@@ -133,7 +133,7 @@ int parse_htm_conf (void)
     layer4_conf_nodes = sizeof(layer4_conf_attrs)/sizeof(xml_el);
     for (c=0; c<layer4_conf_nodes; c++) {
         if (set_conf_node_attr(node, layer4_conf_attrs[c])) {
-            fprintf(stderr, "Conf parsing failed at attribute %s\n",
+            ERR("Conf parsing failed at attribute %s\n",
             layer4_conf_attrs[c].name);
             goto fail_jmp;
         }
@@ -141,11 +141,11 @@ int parse_htm_conf (void)
 
     /* parse columns node attributes */
     if ((colnode = node->xmlChildrenNode)==NULL) {
-        fprintf(stderr, "Config file is incomplete.\n");
+        ERR("Config file is incomplete.\n");
         goto fail_jmp;
     }
     if (xmlStrcmp(colnode->name, (const xmlChar *)"Minicolumns")) {
-        fprintf(stderr, "Minicolumns config node seems missing/misplaced\n");
+        ERR("Minicolumns config node seems missing/misplaced\n");
         goto fail_jmp;
     }
     
@@ -153,7 +153,7 @@ int parse_htm_conf (void)
     col_conf_nodes = sizeof(columns_conf_attrs)/sizeof(xml_el);
     for (c=0; c<col_conf_nodes; c++) {
         if (set_conf_node_attr(colnode, columns_conf_attrs[c])) {
-            fprintf(stderr, "Conf parsing failed at attribute %s\n",
+            ERR("Conf parsing failed at attribute %s\n",
             columns_conf_attrs[c].name);
             goto fail_jmp;
         }
@@ -210,7 +210,7 @@ set_conf_node_attr (xmlNodePtr node, xml_el attr)
     xmlstr = xmlGetProp(node, (const xmlChar *)attr.name);
     if (!xmlstr) {
         if (attr.required==1) {
-            fprintf(stderr, "Config requires '%s' attribute.\n",
+            ERR("Config requires '%s' attribute.\n",
                 attr.name);
             return 1;
         }
@@ -240,7 +240,7 @@ set_conf_node_attr (xmlNodePtr node, xml_el attr)
                 (short)atoi((char *)xmlstr);
             break;
         default:
-            fprintf(stderr, "Unsupported type\n");
+            ERR("Unsupported type\n");
             xmlFree(xmlstr);
             return 1;
     }

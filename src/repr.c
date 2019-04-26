@@ -10,7 +10,7 @@ new_repr(uint32_t r, uint32_t c)
         sizeof(repr_t), sizeof(repr_t));
 
     if (repr == NULL) {
-        fprintf(stderr, "[ERR] Failed memory allocation for (%u, %u)"
+        ERR("Failed memory allocation for (%u, %u)"
             " pattern repr_t\n", r, c);
         return NULL;
     }
@@ -19,7 +19,7 @@ new_repr(uint32_t r, uint32_t c)
         INT_LEN(r, c), SZ);
 
     if (repr->repr == NULL) {
-        fprintf(stderr, "[ERR] Failed memory allocation for (%u, %u)"
+        ERR("Failed memory allocation for (%u, %u)"
             " pattern repr_t\n", r, c);
         return NULL;
     }
@@ -34,7 +34,7 @@ void
 print_repr(repr_t *r)
 {
     uint32_t b = r->rows*r->cols;
-    printf("%u bits in %u ints\n",
+    INFO("%u bits in %u ints\n",
         b, (uint32_t)(INT_LEN(r->rows, r->cols)));
     int i;
     for (i=0; i<b; i++) {

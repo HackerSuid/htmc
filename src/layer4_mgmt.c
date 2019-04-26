@@ -7,6 +7,7 @@
 #include "minicolumn.h"
 #include "synapse.h"
 #include "threads.h"
+#include "utils.h"
 
 /* globals declared extern */
 struct layer *layer4, *layer6;
@@ -27,7 +28,7 @@ free_layer4 ( void );
 
 #define LAYER_BAIL \
     free_layer4(); \
-    fprintf(stderr, "[ERR] No memory to alloc layer 4\n"); \
+    ERR("No memory to alloc layer 4\n"); \
     return NULL;
 
 struct layer*
@@ -90,7 +91,7 @@ alloc_layer4 (struct layer4_conf conf)
     /* rows per thread vs maximum allowed */
 /*
     if (layer->height/NUM_THREADS+rem_rows > max_rows_mask) {
-        fprintf(stderr, "%d threads not supported "
+        ERR("%d threads not supported "
                         "for %u rows\n",
                 NUM_THREADS, layer->height);
         return NULL;
@@ -168,22 +169,22 @@ init_l4(
     if (input->rows>1 && input->cols>1) {
         /* Input pattern is 2-dimensional. */
         if (layer4->height > input->rows) {
-            fprintf(stderr, "input height less than minicolumn height\n");
+            ERR("input height less than minicolumn height\n");
             return 1;
         }
         if (layer4->width > input->cols) {
-            fprintf(stderr, "input width less than minicolumn width\n");
+            ERR("input width less than minicolumn width\n");
             return 1;
         }
     } else if (input->rows==1 && input->cols>1) {
         /* Input is 1-dimensional. */
         if (layer4->width > input->cols) {
-            fprintf(stderr, "input width less than minicolumn width\n");
+            ERR("input width less than minicolumn width\n");
             return 1;
         }
     } else {
         /* fail */
-        fprintf(stderr, "input is using invalid dimensions\n");
+        ERR("input is using invalid dimensions\n");
         return 1;
     }
 
@@ -201,7 +202,7 @@ init_l4(
             if (input->rows>1)
                 ycent = y*(input->rows/layer4->height) +
                         input->rows/layer4->height/2;
-            /*printf("xcent %u ycent %u\n", xcent, ycent);*/
+            /*INFO("xcent %u ycent %u\n", xcent, ycent);*/
             layer4->minicolumns[y][x]->input_xcent = xcent;
             layer4->minicolumns[y][x]->input_ycent = ycent;
 
@@ -219,13 +220,13 @@ init_l4(
 
             (*(*(layer4->minicolumns+y)+x))->num_synapses =
                 (maxx-minx)*(maxy-miny);
-            /*printf("x %u %u y %u %u\n",
+            /*INFO("x %u %u y %u %u\n",
                 minx, maxx, miny, maxy);*/
-            /*printf("%u\n", (*(*(layer4->minicolumns+y)+x))->num_synapses);*/
+            /*INFO("%u\n", (*(*(layer4->minicolumns+y)+x))->num_synapses);*/
             /* allocate the synaptic memory */
             if (alloc_minicolumn_synapses(
                 *(*(layer4->minicolumns+y)+x))>0) {
-                fprintf(stderr, "no memory for minicolumn synapses\n");
+                ERR("No memory for minicolumn synapses\n");
                 return 1;
             }
             /* initialize the proximal dendrite segment with

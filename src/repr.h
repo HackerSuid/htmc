@@ -24,7 +24,7 @@ warning. */
 #define VALID_MODIFY(operation, rep, r, c) \
     __builtin_expect(((r)<0||(r)>(rep)->rows-1) ||  \
                      ((c)<0||(c)>(rep)->cols-1), 0) ? \
-        fprintf(stderr, "[WARN] Attempt to modify repr bit " \
+        WARN("Attempt to modify repr bit " \
             "(%u, %u), outside range (%u, %u).\n",  \
             (r), (c), (rep)->rows, (rep)->cols) : \
         (operation)

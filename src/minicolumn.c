@@ -108,7 +108,7 @@ compute_minicolumn_inhib_rad (struct minicolumn *mc)
         synptr++;
     }
     /* this could theoretically return 0 */
-    /*printf("%f/%u=%u\n",
+    /*DEBUG("%f/%u=%u\n",
         avgdist, scnt, (unsigned int)(avgdist/scnt));*/
     return (uint32_t)(avgdist/scnt);
 }
