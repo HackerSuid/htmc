@@ -9,10 +9,11 @@
 #include "threads.h"
 
 /* globals declared extern */
-pthread_attr_t threadattr;
-unsigned int layer4_width;
-unsigned int layer4_height;
+struct layer *layer4, *layer6;
+uint32_t layer4_width;
+uint32_t layer4_height;
 float local_mc_activity;
+pthread_attr_t threadattr;
 
 /* structure passed to the threads */
 struct thread_data td[NUM_THREADS];
@@ -22,38 +23,43 @@ static uint32_t rows_thread_bitmask;
 static uint32_t max_rows_mask;
 
 static int32_t
-free_layer4 (struct layer *layer);
+free_layer4 ( void );
+
+#define LAYER_BAIL \
+    free_layer4(); \
+    fprintf(stderr, "[ERR] No memory to alloc layer 4\n"); \
+    return NULL;
 
 struct layer*
 alloc_layer4 (struct layer4_conf conf)
 {
-    struct layer *layer=NULL;
+    /* layer4 is null from program loader */
     unsigned int rem_rows;
     uint32_t t, x, y;
 
-    if (!(layer = calloc(1, sizeof(struct layer))))
-        goto alloc_mc_failed;
+    if (!(layer4 = calloc(1, sizeof(struct layer))))
+        LAYER_BAIL
 
-    layer->minicolumns = calloc(
+    layer4->minicolumns = calloc(
             conf.height, sizeof(struct minicolumn **));
-    if (!layer->minicolumns)
-        goto alloc_mc_failed;
+    if (!layer4->minicolumns)
+        LAYER_BAIL
 
     for (y=0; y<conf.height; y++) {
-        *(layer->minicolumns+y) = calloc(
+        *(layer4->minicolumns+y) = calloc(
             conf.width, sizeof(struct minicolumn *));
-        if (!*(layer->minicolumns+y))
-            goto alloc_mc_failed;
+        if (!*(layer4->minicolumns+y))
+            LAYER_BAIL
         for (x=0; x<conf.width; x++) {
-            *(*(layer->minicolumns+y)+x) = calloc(
+            *(*(layer4->minicolumns+y)+x) = calloc(
                 1, sizeof(struct minicolumn));
-            if (!*(*(layer->minicolumns+y)+x))
-                goto alloc_mc_failed;
+            if (!*(*(layer4->minicolumns+y)+x))
+                LAYER_BAIL
         }
     }
 
-    layer->height = conf.height;
-    layer->width = conf.width;
+    layer4->height = conf.height;
+    layer4->width = conf.width;
     layer4_height = conf.height;
     layer4_width = conf.width;
 
@@ -79,7 +85,7 @@ alloc_layer4 (struct layer4_conf conf)
     /* this does not always equal zero because it is integer
        math. */
     rem_rows =
-        layer->height-layer->height/NUM_THREADS*NUM_THREADS;
+        layer4->height-layer4->height/NUM_THREADS*NUM_THREADS;
 
     /* rows per thread vs maximum allowed */
 /*
@@ -102,56 +108,51 @@ alloc_layer4 (struct layer4_conf conf)
 */
     /* set the attributes of thread structures */
     for (t=0; t<NUM_THREADS; t++) {
-        td[t].minicolumns = layer->minicolumns;
+        td[t].minicolumns = layer4->minicolumns;
         td[t].column_complexity = conf.colconf.column_complexity;
-        td[t].row_num = layer->height/NUM_THREADS+(!t?rem_rows:0);
+        td[t].row_num = layer4->height/NUM_THREADS+(!t?rem_rows:0);
 /*
             max_rows_mask & (rows_thread_bitmask >> t * ((uint32_t)(
                 ((float)sizeof(uint32_t)/NUM_THREADS)*8)));
 */
-        td[t].row_width = layer->width;
+        td[t].row_width = layer4->width;
 
         td[t].row_start =
             t ? td[t-1].row_start + td[t-1].row_num : 0;
 
-        td[t].avg_inhib_rad = &layer->inhibition_radius;
+        td[t].avg_inhib_rad = &layer4->inhibition_radius;
     }
 
     /* set the attribute to explicitly make threads joinable */
     pthread_attr_init(&threadattr);
     pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
-    return layer;
-
-    alloc_mc_failed:
-        free_layer4(layer);
-        fprintf(stderr, "no memory to alloc layer 4\n");
-        return NULL;
+    return layer4;
 }
 
 int32_t
-free_layer4 (struct layer *layer)
+free_layer4 ( void )
 {
     uint32_t x, y;
 
     /* free the layer's minicolumns */
-    for (y=0; y<layer->height; y++) {
-        for (x=0; x<layer->width; x++) {
+    for (y=0; y<layer4->height; y++) {
+        for (x=0; x<layer4->width; x++) {
             free_dendrite(
-                (*(*(layer->minicolumns+y)+x))->proximal_dendrite_segment
+                (*(*(layer4->minicolumns+y)+x))->proximal_dendrite_segment
             );
-            free(*(*(layer->minicolumns+y)+x));
+            free(*(*(layer4->minicolumns+y)+x));
         }
-        free(*(layer->minicolumns+y));
+        free(*(layer4->minicolumns+y));
     }
 
     /* free the layer */
-    free(layer);
+    free(layer4);
+    layer4 = NULL;
 }
 
 int32_t
-init_l4_minicol_receptive_flds(
-    struct layer *layer,
+init_l4(
     repr_t *input,
     float rec_fld_perc
 ) {
@@ -166,17 +167,17 @@ init_l4_minicol_receptive_flds(
        minicolumns. */
     if (input->rows>1 && input->cols>1) {
         /* Input pattern is 2-dimensional. */
-        if (layer->height > input->rows) {
+        if (layer4->height > input->rows) {
             fprintf(stderr, "input height less than minicolumn height\n");
             return 1;
         }
-        if (layer->width > input->cols) {
+        if (layer4->width > input->cols) {
             fprintf(stderr, "input width less than minicolumn width\n");
             return 1;
         }
     } else if (input->rows==1 && input->cols>1) {
         /* Input is 1-dimensional. */
-        if (layer->width > input->cols) {
+        if (layer4->width > input->cols) {
             fprintf(stderr, "input width less than minicolumn width\n");
             return 1;
         }
@@ -191,18 +192,18 @@ init_l4_minicol_receptive_flds(
     /* radius of the square */
      sqr /= 2;
 
-    for (y=0; y<layer->height; y++) {
-        for (x=0; x<layer->width; x++) {
+    for (y=0; y<layer4->height; y++) {
+        for (x=0; x<layer4->width; x++) {
             /* compute the natural center over the input */
-            xcent = x*(input->cols/layer->width) +
-                    input->cols/layer->width/2;
+            xcent = x*(input->cols/layer4->width) +
+                    input->cols/layer4->width/2;
             ycent = 0; /* true always when input is 1D */
             if (input->rows>1)
-                ycent = y*(input->rows/layer->height) +
-                        input->rows/layer->height/2;
+                ycent = y*(input->rows/layer4->height) +
+                        input->rows/layer4->height/2;
             /*printf("xcent %u ycent %u\n", xcent, ycent);*/
-            layer->minicolumns[y][x]->input_xcent = xcent;
-            layer->minicolumns[y][x]->input_ycent = ycent;
+            layer4->minicolumns[y][x]->input_xcent = xcent;
+            layer4->minicolumns[y][x]->input_ycent = ycent;
 
             /* compute number of synapses */
             maxx = xcent+sqr >= input->cols?
@@ -216,21 +217,21 @@ init_l4_minicol_receptive_flds(
             if (input->rows>1)
                 miny = ycent < sqr ? 0 : ycent - sqr;
 
-            (*(*(layer->minicolumns+y)+x))->num_synapses =
+            (*(*(layer4->minicolumns+y)+x))->num_synapses =
                 (maxx-minx)*(maxy-miny);
             /*printf("x %u %u y %u %u\n",
                 minx, maxx, miny, maxy);*/
-            /*printf("%u\n", (*(*(layer->minicolumns+y)+x))->num_synapses);*/
+            /*printf("%u\n", (*(*(layer4->minicolumns+y)+x))->num_synapses);*/
             /* allocate the synaptic memory */
             if (alloc_minicolumn_synapses(
-                *(*(layer->minicolumns+y)+x))>0) {
+                *(*(layer4->minicolumns+y)+x))>0) {
                 fprintf(stderr, "no memory for minicolumn synapses\n");
                 return 1;
             }
             /* initialize the proximal dendrite segment with
                synapses connected to input bits from the
                receptive field */
-            synptr = (*(*(layer->minicolumns+y)+x))->proximal_dendrite_segment;
+            synptr = (*(*(layer4->minicolumns+y)+x))->proximal_dendrite_segment;
             for (yidx=miny; yidx<maxy; yidx++) {
                 for (xidx=minx; xidx<maxx; xidx++) {
                     synptr->source = input;
@@ -241,9 +242,9 @@ init_l4_minicol_receptive_flds(
                 }
             }
             /* initialize active bitmask */
-            (*(*(layer->minicolumns+y)+x))->active_mask = 0;
+            (*(*(layer4->minicolumns+y)+x))->active_mask = 0;
             /* set the initial boost value */
-            (*(*(layer->minicolumns+y)+x))->boost = 1.0;
+            (*(*(layer4->minicolumns+y)+x))->boost = 1.0;
         }
     }
 

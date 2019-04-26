@@ -38,7 +38,7 @@ init_htm (codec_cb cb);
 /* calls the HTM learning and inference algorithms on
 the encoded input patterns. */
 extern int32_t
-process_subcortical_input (void);
+run_cortical_algorithm (void);
 
 extern struct layer*
 get_layer4 (void);

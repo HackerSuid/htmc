@@ -42,12 +42,12 @@ init_htm (codec_cb cb)
     codec_callback = cb;
 
     /* initialize each htm layer */
-    if (!(layer6=alloc_layer6(htmconf.layer6conf))) {
-        fprintf(stderr, "failed layer6 allocation\n");
+    if (!alloc_layer6(htmconf.layer6conf)) {
+        fprintf(stderr, "[ERR] failed layer6 allocation\n");
         return 1;
     }
-    if (!(layer4=alloc_layer4(htmconf.layer4conf))) {
-        fprintf(stderr, "failed layer4 allocation\n");
+    if (!alloc_layer4(htmconf.layer4conf)) {
+        fprintf(stderr, "[ERR] failed layer4 allocation\n");
         return 1;
     }
 
@@ -57,16 +57,15 @@ init_htm (codec_cb cb)
     }
 
     /* L4 is the second layer in the feedforward circuit */
-    if (init_l4_minicol_receptive_flds(
-            layer4,
+    if (init_l4(
             ip_container->sensory_pattern,
             htmconf.layer4conf.colconf.rec_field_sz)>0
     ) {
-        fprintf(stderr, "failed layer4 initialization\n");
+        fprintf(stderr, "[ERR] Failed layer4 initialization\n");
         return 1;
     }
 
-    printf("[*] HTM initialization complete.\n");
+    printf("[INFO] HTM initialization complete.\n");
 
     return 0;
 }
@@ -194,14 +193,14 @@ get_codec_input (void)
 }
 
 int32_t
-process_subcortical_input (void)
+run_cortical_algorithm (void)
 {
     if (!layer4 || !ip_container) {
-        fprintf(stderr, "must init the htm first.\n");
+        fprintf(stderr, "[ERR] You must init the htm first.\n");
         return 1;
     }
 
-    if (layer4_feedforward(layer4)>0)
+    if (layer4_feedforward()>0)
         return 1;
 
     /* get next input pattern from codec */

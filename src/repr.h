@@ -30,7 +30,7 @@ warning. */
         (operation)
 
 /* set bit in representation to 1. rep must be a
-pointer to a repr_t to allow modifying the memory. */
+pointer to a repr_t. */
 #define SET_REPR_BIT(rep, r, c) \
     VALID_MODIFY( \
         (rep)->repr[BIT_IDX(rep, r, c)] |= 1<<BIT_POS(rep, r, c), \

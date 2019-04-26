@@ -10,19 +10,21 @@
 
 #define NUM_THREADS 1
 
+/* export global layer structs */
+extern struct layer *layer4, *layer6;
+
 struct layer*
 alloc_layer4 (struct layer4_conf conf);
 struct layer*
 alloc_layer6 (struct layer6_conf conf);
 
 int32_t
-init_l4_minicol_receptive_flds (
-    struct layer *layer,
+init_l4 (
     repr_t *input,
     float rec_fld_perc
 );
 int32_t
-layer4_feedforward (struct layer *layer);
+layer4_feedforward ( void );
 
 #endif
 

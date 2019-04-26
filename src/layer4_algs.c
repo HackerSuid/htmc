@@ -61,7 +61,7 @@ static void
 free_rects (struct rect_of_rects rr);
 
 int32_t
-layer4_feedforward (struct layer *layer)
+layer4_feedforward (void)
 {
     /* spatial pooling procedure. compute the inference
        (aka overlap score) for each minicolumn. This is a
@@ -72,7 +72,7 @@ layer4_feedforward (struct layer *layer)
        radius from becoming active. The minicolumns learn
        to map spatially similar input patterns to the
        same or a similar set of active minicolumns. */
-    spatial_pooler(layer);
+    spatial_pooler(layer4);
     /* temporal memory procedure.
      1a. Depolarized cells within active minicolumns after
         spatial pooling are activated, representing a
