@@ -4,8 +4,7 @@ in ISO 1999 Standard C (C99). */
 #ifndef HTM_H_
 # define HTM_H_ 1
 
-/* trigraph sequence, neat trick */
-??=define DEFAULT_CONF_PATH "/etc/htmc.conf"
+#define DEFAULT_CONF_PATH "/etc/htmc.conf"
 
 /* C99 fixed-width data types for increased type
 portability */
@@ -69,6 +68,13 @@ struct minicolumn
     uint32_t input_ycent;
     struct minicolumn **neighbors;
 };
+
+#define RST_MC_SP_INDICATOR(mc) \
+    ( (mc)->active_mask <<= 2 )
+/* bitwise AND of active and SP-process bits */
+#define MC_ACTIVE_AT(mc, t) \
+    ( ( (mc)->active_mask & (1<<((t)+1)) ) && \
+      ( (mc)->active_mask & 1 ) )
 
 extern unsigned char
 mc_active_at (struct minicolumn *mc, uint32_t t);

@@ -88,8 +88,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = test_test$(EXEEXT)
-check_PROGRAMS = test_test$(EXEEXT)
+TESTS = test_l4_init$(EXEEXT) test_l4_sp$(EXEEXT)
+check_PROGRAMS = test_l4_init$(EXEEXT) test_l4_sp$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -107,16 +107,23 @@ CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__dirstamp = $(am__leading_dot)dirstamp
-am_test_test_OBJECTS = tests/test_test-test_test.$(OBJEXT)
-test_test_OBJECTS = $(am_test_test_OBJECTS)
+am_test_l4_init_OBJECTS = tests/test_l4_init-test_l4_init.$(OBJEXT)
+test_l4_init_OBJECTS = $(am_test_l4_init_OBJECTS)
 am__DEPENDENCIES_1 =
-test_test_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+test_l4_init_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-test_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(test_test_CFLAGS) \
+test_l4_init_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(test_l4_init_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_test_l4_sp_OBJECTS = tests/test_l4_sp-test_l4_sp.$(OBJEXT)
+test_l4_sp_OBJECTS = $(am_test_l4_sp_OBJECTS)
+test_l4_sp_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+test_l4_sp_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(test_l4_sp_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -152,8 +159,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(test_test_SOURCES)
-DIST_SOURCES = $(test_test_SOURCES)
+SOURCES = $(test_l4_init_SOURCES) $(test_l4_sp_SOURCES)
+DIST_SOURCES = $(test_l4_init_SOURCES) $(test_l4_sp_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -568,9 +575,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-test_test_SOURCES = tests/test_test.c
-test_test_CFLAGS = $(CFLAGS) $(CHECK_CFLAGS)
-test_test_LDADD = $(LDFLAGS) $(CHECK_LIBS)
+test_l4_init_SOURCES = tests/test_l4_init.c
+test_l4_sp_SOURCES = tests/test_l4_sp.c
+test_l4_init_CFLAGS = $(CFLAGS) $(CHECK_CFLAGS) -I./src -L./src/.libs -pedantic -std=c99
+test_l4_sp_CFLAGS = $(CFLAGS) $(CHECK_CFLAGS) -I./src -L./src/.libs -pedantic -std=c99
+test_l4_init_LDADD = $(LDFLAGS) $(CHECK_LIBS) -lhtmc -lxml2
+test_l4_sp_LDADD = $(LDFLAGS) $(CHECK_LIBS) -lhtmc -lxml2
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src
 dist_doc_DATA = README
@@ -642,12 +652,18 @@ tests/$(am__dirstamp):
 tests/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) tests/$(DEPDIR)
 	@: > tests/$(DEPDIR)/$(am__dirstamp)
-tests/test_test-test_test.$(OBJEXT): tests/$(am__dirstamp) \
+tests/test_l4_init-test_l4_init.$(OBJEXT): tests/$(am__dirstamp) \
 	tests/$(DEPDIR)/$(am__dirstamp)
 
-test_test$(EXEEXT): $(test_test_OBJECTS) $(test_test_DEPENDENCIES) $(EXTRA_test_test_DEPENDENCIES) 
-	@rm -f test_test$(EXEEXT)
-	$(AM_V_CCLD)$(test_test_LINK) $(test_test_OBJECTS) $(test_test_LDADD) $(LIBS)
+test_l4_init$(EXEEXT): $(test_l4_init_OBJECTS) $(test_l4_init_DEPENDENCIES) $(EXTRA_test_l4_init_DEPENDENCIES) 
+	@rm -f test_l4_init$(EXEEXT)
+	$(AM_V_CCLD)$(test_l4_init_LINK) $(test_l4_init_OBJECTS) $(test_l4_init_LDADD) $(LIBS)
+tests/test_l4_sp-test_l4_sp.$(OBJEXT): tests/$(am__dirstamp) \
+	tests/$(DEPDIR)/$(am__dirstamp)
+
+test_l4_sp$(EXEEXT): $(test_l4_sp_OBJECTS) $(test_l4_sp_DEPENDENCIES) $(EXTRA_test_l4_sp_DEPENDENCIES) 
+	@rm -f test_l4_sp$(EXEEXT)
+	$(AM_V_CCLD)$(test_l4_sp_LINK) $(test_l4_sp_OBJECTS) $(test_l4_sp_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -656,7 +672,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/test_test-test_test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/test_l4_init-test_l4_init.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -682,19 +699,33 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-tests/test_test-test_test.o: tests/test_test.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_test_CFLAGS) $(CFLAGS) -MT tests/test_test-test_test.o -MD -MP -MF tests/$(DEPDIR)/test_test-test_test.Tpo -c -o tests/test_test-test_test.o `test -f 'tests/test_test.c' || echo '$(srcdir)/'`tests/test_test.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_test-test_test.Tpo tests/$(DEPDIR)/test_test-test_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_test.c' object='tests/test_test-test_test.o' libtool=no @AMDEPBACKSLASH@
+tests/test_l4_init-test_l4_init.o: tests/test_l4_init.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_init_CFLAGS) $(CFLAGS) -MT tests/test_l4_init-test_l4_init.o -MD -MP -MF tests/$(DEPDIR)/test_l4_init-test_l4_init.Tpo -c -o tests/test_l4_init-test_l4_init.o `test -f 'tests/test_l4_init.c' || echo '$(srcdir)/'`tests/test_l4_init.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_l4_init-test_l4_init.Tpo tests/$(DEPDIR)/test_l4_init-test_l4_init.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_l4_init.c' object='tests/test_l4_init-test_l4_init.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_test_CFLAGS) $(CFLAGS) -c -o tests/test_test-test_test.o `test -f 'tests/test_test.c' || echo '$(srcdir)/'`tests/test_test.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_init_CFLAGS) $(CFLAGS) -c -o tests/test_l4_init-test_l4_init.o `test -f 'tests/test_l4_init.c' || echo '$(srcdir)/'`tests/test_l4_init.c
 
-tests/test_test-test_test.obj: tests/test_test.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_test_CFLAGS) $(CFLAGS) -MT tests/test_test-test_test.obj -MD -MP -MF tests/$(DEPDIR)/test_test-test_test.Tpo -c -o tests/test_test-test_test.obj `if test -f 'tests/test_test.c'; then $(CYGPATH_W) 'tests/test_test.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_test.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_test-test_test.Tpo tests/$(DEPDIR)/test_test-test_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_test.c' object='tests/test_test-test_test.obj' libtool=no @AMDEPBACKSLASH@
+tests/test_l4_init-test_l4_init.obj: tests/test_l4_init.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_init_CFLAGS) $(CFLAGS) -MT tests/test_l4_init-test_l4_init.obj -MD -MP -MF tests/$(DEPDIR)/test_l4_init-test_l4_init.Tpo -c -o tests/test_l4_init-test_l4_init.obj `if test -f 'tests/test_l4_init.c'; then $(CYGPATH_W) 'tests/test_l4_init.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_l4_init.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_l4_init-test_l4_init.Tpo tests/$(DEPDIR)/test_l4_init-test_l4_init.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_l4_init.c' object='tests/test_l4_init-test_l4_init.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_test_CFLAGS) $(CFLAGS) -c -o tests/test_test-test_test.obj `if test -f 'tests/test_test.c'; then $(CYGPATH_W) 'tests/test_test.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_test.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_init_CFLAGS) $(CFLAGS) -c -o tests/test_l4_init-test_l4_init.obj `if test -f 'tests/test_l4_init.c'; then $(CYGPATH_W) 'tests/test_l4_init.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_l4_init.c'; fi`
+
+tests/test_l4_sp-test_l4_sp.o: tests/test_l4_sp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_sp_CFLAGS) $(CFLAGS) -MT tests/test_l4_sp-test_l4_sp.o -MD -MP -MF tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Tpo -c -o tests/test_l4_sp-test_l4_sp.o `test -f 'tests/test_l4_sp.c' || echo '$(srcdir)/'`tests/test_l4_sp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Tpo tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_l4_sp.c' object='tests/test_l4_sp-test_l4_sp.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_sp_CFLAGS) $(CFLAGS) -c -o tests/test_l4_sp-test_l4_sp.o `test -f 'tests/test_l4_sp.c' || echo '$(srcdir)/'`tests/test_l4_sp.c
+
+tests/test_l4_sp-test_l4_sp.obj: tests/test_l4_sp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_sp_CFLAGS) $(CFLAGS) -MT tests/test_l4_sp-test_l4_sp.obj -MD -MP -MF tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Tpo -c -o tests/test_l4_sp-test_l4_sp.obj `if test -f 'tests/test_l4_sp.c'; then $(CYGPATH_W) 'tests/test_l4_sp.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_l4_sp.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Tpo tests/$(DEPDIR)/test_l4_sp-test_l4_sp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_l4_sp.c' object='tests/test_l4_sp-test_l4_sp.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_l4_sp_CFLAGS) $(CFLAGS) -c -o tests/test_l4_sp-test_l4_sp.obj `if test -f 'tests/test_l4_sp.c'; then $(CYGPATH_W) 'tests/test_l4_sp.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_l4_sp.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -973,9 +1004,16 @@ recheck: all $(check_PROGRAMS)
 	        am__force_recheck=am--force-recheck \
 	        TEST_LOGS="$$log_list"; \
 	exit $$?
-test_test.log: test_test$(EXEEXT)
-	@p='test_test$(EXEEXT)'; \
-	b='test_test'; \
+test_l4_init.log: test_l4_init$(EXEEXT)
+	@p='test_l4_init$(EXEEXT)'; \
+	b='test_l4_init'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_l4_sp.log: test_l4_sp$(EXEEXT)
+	@p='test_l4_sp$(EXEEXT)'; \
+	b='test_l4_sp'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

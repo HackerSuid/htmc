@@ -132,7 +132,8 @@ am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libhtmc_la_LIBADD =
 am_libhtmc_la_OBJECTS = htm.lo utils.lo layer4_mgmt.lo layer4_algs.lo \
-	layer6_mgmt.lo layer6_algs.lo minicolumn.lo parse_conf.lo
+	layer6_mgmt.lo layer6_algs.lo minicolumn.lo parse_conf.lo \
+	repr.lo
 libhtmc_la_OBJECTS = $(am_libhtmc_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -329,7 +330,8 @@ libhtmc_la_SOURCES = htm.c \
                     layer6_mgmt.c \
                     layer6_algs.c \
                     minicolumn.c \
-                    parse_conf.c
+                    parse_conf.c \
+                    repr.c
 
 AM_CFLAGS = -std=c99 -pedantic -Werror -ggdb -mfpmath=sse -mmmx -msse -msse2
 all: all-am
@@ -417,6 +419,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layer6_mgmt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minicolumn.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/repr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utils.Plo@am__quote@
 
 .c.o:

@@ -8,6 +8,8 @@
 /* import interface for input pattern representations from encoders*/
 #include "repr.h"
 
+#include "utils.h"
+
 int alloc_minicolumn_synapses(
     struct minicolumn *minicolumn
 ) {
@@ -34,7 +36,7 @@ void check_minicolumn_activation(
     float local_activity)
 {
     struct minicolumn **nptr = NULL;
-    unsigned int num_higher = 0;
+    unsigned int num_higher = 0, num_active = 0;
     unsigned int max_active;
     struct synapse *synptr = NULL;
     uint32_t s;
@@ -44,25 +46,35 @@ void check_minicolumn_activation(
     complexity even after boosting, then the minicolumn
     doesn't compete for pattern representation. */
     if (mc->overlap == 0) {
+        DEBUG("Overlap does not satisfy minicolumn complexity\n");
         mc->active_mask <<= 1;
         return;
     }
 
     /* count number of neighboring minicolumns with more
-    overlap */
-    for (nptr=mc->neighbors; *nptr; nptr++)
+    overlap and that are active. REMEMBER: just because neighbors have a
+    higher overlap doesn't mean they will become active.
+    They could also have neighbors with higher overlap
+    than them. */
+    for (nptr=mc->neighbors; *nptr; nptr++) {
         if ((*nptr)->overlap > mc->overlap)
             num_higher++;
+        if (MC_ACTIVE_AT(*nptr, 0))
+            num_active++;
+    }
+    DEBUG("%u neighbors have a higher overlap\n", num_higher);
+    DEBUG("%u neighbors are already active\n", num_active);
     /* compute maximum number of minicolumns that can be
     active, including this one */
     max_active =
-        (
-        ((uintptr_t)nptr-(uintptr_t)(mc->neighbors)
-         + 1) / sizeof(struct minicolumn *)
-        ) * local_activity;
-    /* shift and set minicolumn activity mask's LSB */
-    if (num_higher < max_active) {
-        mc->active_mask = (mc->active_mask<<1) | 1;
+        (((uintptr_t)nptr-(uintptr_t)(mc->neighbors)) /
+        sizeof(struct minicolumn *) + 1) * local_activity;
+    if (max_active < 1) max_active = 1;
+    DEBUG("Max number of active minicolumns in radius: %u\n", max_active);
+    /* bitmask has been pre-shifted, so now just set the
+    minicolumn activity and SP processed flag bits */
+    if (num_active < max_active && num_higher < max_active) {
+        mc->active_mask |= 3;
         /* modify synaptic permanence */
         synptr = mc->proximal_dendrite_segment;
         for (s=0; s<mc->num_synapses; s++) {
@@ -72,8 +84,11 @@ void check_minicolumn_activation(
                 synptr->perm -= PERM_DEC;
             synptr++;
         }
-    } else
-        mc->active_mask <<= 1;
+    } else {
+        DEBUG("minicolumn NOT active, Num active %u/%u, neighbor overlaps %u/%u\n",
+            num_active, max_active, num_higher, max_active);
+        mc->active_mask |= 2;
+    }
 }
 
 void free_dendrite(struct synapse *dendrite)
@@ -116,6 +131,6 @@ compute_minicolumn_inhib_rad (struct minicolumn *mc)
 unsigned char
 mc_active_at (struct minicolumn *mc, uint32_t t)
 {
-    return (mc->active_mask&(1<<t)) ? 1 : 0;
+    return (mc->active_mask&(1<<(t+1))) ? 1 : 0;
 }
 

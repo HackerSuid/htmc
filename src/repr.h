@@ -69,6 +69,9 @@ new_repr(uint32_t r, uint32_t c);
 void
 print_repr(repr_t *rep);
 
+void
+free_repr(repr_t *r);
+
 /* data structure containing the various patterns within
 the input provided by the external encoder */
 typedef struct

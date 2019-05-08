@@ -19,6 +19,9 @@ struct layer*
 alloc_layer6 (struct layer6_conf conf);
 
 int32_t
+free_l4( void );
+
+int32_t
 init_l4 (
     repr_t *input,
     float rec_fld_perc

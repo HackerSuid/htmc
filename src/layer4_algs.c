@@ -2,6 +2,7 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "htm.h"
 #include "layer.h"
 #include "minicolumn.h"
 #include "synapse.h"
@@ -208,6 +209,12 @@ compute_layer_inhib_rad (void *thread_data)
 
     for (y=td->row_start; y<td->row_start+td->row_num; y++) {
         for (x=0; x<td->row_width; x++) {
+            /* reset bit indicating if the minicolumn
+            has yet been processed by spatial pooler.
+            this will be used in determining if it has
+            been activated in the next step. */
+            RST_MC_SP_INDICATOR(
+                *(*(td->minicolumns+y)+x));
             td->inhibition_radius += compute_minicolumn_inhib_rad(
                 *(*(td->minicolumns+y)+x)
             );
@@ -259,10 +266,11 @@ activate_minicolumns (void *thread_data)
     struct thread_data *td = (struct thread_data *)thread_data;
     struct minicolumn **n = NULL;
 
-    if (td->old_avg_inhib_rad != *td->avg_inhib_rad) {
-        for (y=td->row_start; y<td->row_start+td->row_num; y++) {
-            for (x=0; x<td->row_width; x++) {
-                /* update neighbors if necessary */
+
+    for (y=td->row_start; y<td->row_start+td->row_num; y++) {
+        for (x=0; x<td->row_width; x++) {
+            /* update neighbors if necessary */
+            if (td->old_avg_inhib_rad != *td->avg_inhib_rad) {
                 if (update_minicolumn_neighbors(
                     &(*(*(td->minicolumns+y)+x))->neighbors,
                     td->minicolumns,
@@ -275,14 +283,14 @@ activate_minicolumns (void *thread_data)
                     td->exit_status = 1;
                     pthread_exit(NULL);
                 }
-                /* set the minicolumn active flag based on its
-                   overlap compared to its neighbors. */
-                check_minicolumn_activation(
-                    *(*(td->minicolumns+y)+x), local_mc_activity);
-                
-                INFO("%d ", mc_active_at(*(*(td->minicolumns+y)+x), 0));
-            }
-            printf("\n");
+            } else
+                DEBUG("Inhihition radius unchanged.\n");
+            /* set the minicolumn active flag based on its
+               overlap compared to its neighbors. */
+            check_minicolumn_activation(
+                *(*(td->minicolumns+y)+x), local_mc_activity);
+
+            DEBUG("(%u,%u) activity: %u\n", y, x,  MC_ACTIVE_AT(*(*(td->minicolumns+y)+x), 0));
         }
     }
 

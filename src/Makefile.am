@@ -6,5 +6,6 @@ libhtmc_la_SOURCES = htm.c \
                     layer6_mgmt.c \
                     layer6_algs.c \
                     minicolumn.c \
-                    parse_conf.c
+                    parse_conf.c \
+                    repr.c
 AM_CFLAGS = -std=c99 -pedantic -Werror -ggdb -mfpmath=sse -mmmx -msse -msse2

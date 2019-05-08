@@ -23,20 +23,28 @@ static uint32_t rows_thread_bitmask;
 /* represents theoretical maximum rows for number of threads */
 static uint32_t max_rows_mask;
 
-static int32_t
-free_layer4 ( void );
+int32_t
+free_l4 ( void );
 
 #define LAYER_BAIL \
-    free_layer4(); \
-    ERR("No memory to alloc layer 4\n"); \
-    return NULL;
+    do { \
+        free_l4(); \
+        ERR("No memory to alloc layer 4\n"); \
+        return NULL; \
+    } while (0);
 
 struct layer*
 alloc_layer4 (struct layer4_conf conf)
 {
-    /* layer4 is null from program loader */
     unsigned int rem_rows;
     uint32_t t, x, y;
+
+    INFO("Allocating layer 4, dimensions = (%u, %u)\n",
+        conf.height, conf.width);
+
+    /* free any pre-existing layer4 memory */
+    if (layer4 != NULL)
+        free_l4();
 
     if (!(layer4 = calloc(1, sizeof(struct layer))))
         LAYER_BAIL
@@ -128,11 +136,13 @@ alloc_layer4 (struct layer4_conf conf)
     pthread_attr_init(&threadattr);
     pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_JOINABLE);
 
+    INFO("Layer 4 allocation complete.\n");
+
     return layer4;
 }
 
 int32_t
-free_layer4 ( void )
+free_l4 ( void )
 {
     uint32_t x, y;
 

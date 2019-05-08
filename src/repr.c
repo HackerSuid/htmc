@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "repr.h"
+#include "utils.h"
 
 /* user wants their 2D structure, but it isn't
 literally stored that way. it's just a large
@@ -45,5 +49,14 @@ print_repr(repr_t *r)
         );
     }
     printf("\n");
+}
+
+void
+free_repr(repr_t *r)
+{
+    free(r->repr);
+    r->repr = NULL;
+    free(r);
+    r = NULL;
 }
 

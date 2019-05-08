@@ -31,6 +31,8 @@ pattern set from codec. then initialize the htm layers */
 int32_t
 init_htm (codec_cb cb)
 {
+    INFO("Initializing HTM...\n");
+
     if (!cb) {
         ERR("codec callback is null\n");
         return 1;
@@ -42,21 +44,25 @@ init_htm (codec_cb cb)
     codec_callback = cb;
 
     /* initialize each htm layer */
+    /*
     if (!alloc_layer6(htmconf.layer6conf)) {
         ERR("Failed layer6 allocation\n");
         return 1;
     }
+    */
     if (!alloc_layer4(htmconf.layer4conf)) {
         ERR("Failed layer4 allocation\n");
         return 1;
     }
 
+    DEBUG("Getting first codec input pattern.\n");
     if (get_codec_input()) {
         ERR("Call to codec failed\n");
         return 1;
     }
 
     /* L4 is the second layer in the feedforward circuit */
+    DEBUG("Initializing layer 4...\n");
     if (init_l4(
             ip_container->sensory_pattern,
             htmconf.layer4conf.colconf.rec_field_sz)>0
@@ -188,8 +194,8 @@ get_codec_input (void)
     copy_out_cb_ip(cb_ip, ip_container);
 
     free_ip(cb_ip);
-    return 0;
 */
+    return 0;
 }
 
 int32_t
