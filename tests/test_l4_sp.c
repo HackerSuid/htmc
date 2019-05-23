@@ -10,7 +10,7 @@
 struct layer4_conf l4conf;
 input_patterns in;
 
-START_TEST(test_l4_sp_sparsity_100)
+START_TEST(test_l4_sp_basic_sparsity_100)
     uint32_t i, j, o, numsyns;
     struct layer *l4 = NULL;
 
@@ -64,10 +64,11 @@ START_TEST(test_l4_sp_sparsity_100)
     free_repr(in.sensory_pattern);
 END_TEST
 
-START_TEST(test_l4_sp_sparsity_50)
+START_TEST(test_l4_sp_basic_sparsity_2)
     uint32_t i, j, o, numsyns;
     uint32_t num_active = 0, active;
     struct layer *l4 = NULL;
+    float sparsity_level, sparsity_difference;
 
     /* configure layer 4 */
     l4conf.height = 48;
@@ -76,8 +77,9 @@ START_TEST(test_l4_sp_sparsity_50)
     l4conf.sensorimotor = 1;
     l4conf.loc_patt_sz = 1024;
     l4conf.loc_patt_bits = 8;
-    l4conf.colconf.rec_field_sz = 0.02;
-    l4conf.colconf.local_activity = 0.0;
+    /* minicolumns synapse with every input */
+    l4conf.colconf.rec_field_sz = 0.50;
+    l4conf.colconf.local_activity = 0.02;
     l4conf.colconf.column_complexity = 0.33;
     l4conf.colconf.high_tier = 1;
     l4conf.colconf.activity_cycle_window = 100;
@@ -86,10 +88,11 @@ START_TEST(test_l4_sp_sparsity_50)
 
     l4 = get_layer4();
 
-    /* generate input pattern with all bits active */
-    in.sensory_pattern = new_repr(l4conf.height, l4conf.width);
-    for (i=0; i<l4conf.height; i++) {
-        for (j=0; j<l4conf.width; j++) {
+    /* generate input pattern with all bits active. Have to
+    double input size to get desired sparsity. */
+    in.sensory_pattern = new_repr(l4conf.height*2, l4conf.width*2);
+    for (i=0; i<l4conf.height*2; i++) {
+        for (j=0; j<l4conf.width*2; j++) {
             SET_REPR_BIT_FAST(in.sensory_pattern, i, j);
         }
     }
@@ -111,14 +114,26 @@ START_TEST(test_l4_sp_sparsity_50)
         for (j=0; j<l4->width; j++) {
             o = l4->minicolumns[i][j]->overlap;
             numsyns = l4->minicolumns[i][j]->num_synapses;
-            ck_assert(o == numsyns);
-            active = MC_ACTIVE_AT(l4->minicolumns[i][j], 0) ? 1 : 0;
-            printf("%u ", active);
-            num_active += active;
+            num_active += MC_ACTIVE_AT(l4->minicolumns[i][j], 0) ? 1 : 0;
+            //printf("%u ", MC_ACTIVE_AT(l4->minicolumns[i][j], 0) ? 1 : 0);
         }
-        printf("\n");
+        //printf("\n");
     }
-    printf("%u vs %u\n", num_active, l4->height*l4->width);
+
+    sparsity_level = (float)num_active/(l4->height*l4->width);
+    sparsity_difference =
+        sparsity_level>l4conf.colconf.local_activity ?
+        sparsity_level-l4conf.colconf.local_activity :
+        l4conf.colconf.local_activity-sparsity_level;
+
+    ck_assert_msg(
+        sparsity_difference < 0.01,
+        "Expected %u (%f with 0.01 room for error) activity actual is %u (%f)\n",
+        (uint32_t)(l4->height*l4->width*l4conf.colconf.local_activity),
+        l4conf.colconf.local_activity,
+        num_active,
+        sparsity_level
+    );
 
     free_l4();
     free_repr(in.sensory_pattern);
@@ -131,8 +146,8 @@ test_suite(void)
     /* Core test case */
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 60);
-    tcase_add_test(tc_core, test_l4_sp_sparsity_100);
-    tcase_add_test(tc_core, test_l4_sp_sparsity_50);
+    //tcase_add_test(tc_core, test_l4_sp_basic_sparsity_100);
+    tcase_add_test(tc_core, test_l4_sp_basic_sparsity_2);
     suite_add_tcase(s, tc_core);
 
     return s;

@@ -23,9 +23,9 @@ extern float local_mc_activity;
 static void*
 compute_layer_inhib_rad (void *thread_data);
 static void*
-compute_overlaps (void *thread_data);
+compute_activations (void *thread_data);
 static void*
-activate_minicolumns (void *thread_data);
+minicolumn_inhibition (void *thread_data);
 static thread_status_t
 update_minicolumn_neighbors(
     struct minicolumn ***neighbors,
@@ -144,7 +144,7 @@ spatial_pooler (struct layer *layer)
         rc = pthread_create(
             &threads[t],
             &threadattr,
-            compute_overlaps,
+            compute_activations,
             (void *)&td[t]);
         if (rc != 0) {
             ERR("Thread %d creation failed: %d\n",
@@ -168,7 +168,7 @@ spatial_pooler (struct layer *layer)
         rc = pthread_create(
             &threads[t],
             &threadattr,
-            activate_minicolumns,
+            minicolumn_inhibition,
             (void *)&td[t]);
         if (rc != 0) {
             ERR("Thread %d creation failed: %d\n",
@@ -225,7 +225,7 @@ compute_layer_inhib_rad (void *thread_data)
 }
 
 static void*
-compute_overlaps (void *thread_data)
+compute_activations (void *thread_data)
 {
     uint32_t x, y, s;
     struct synapse *synptr = NULL;
@@ -244,8 +244,8 @@ compute_overlaps (void *thread_data)
                     (*(*(td->minicolumns+y)+x))->overlap++;
                 synptr++;
             }
-            /*INFO("num_syns %u raw overlap %u ",
-                num_syns, (*(*(td->minicolumns+y)+x))->overlap);*/
+            DEBUG("num_syns %u raw overlap %u ",
+                num_syns, (*(*(td->minicolumns+y)+x))->overlap);
             /* reset to zero if it doesn't reach the minimum complexity
                requirement, otherwise multiply by boost */
             (*(*(td->minicolumns+y)+x))->overlap *=
@@ -260,7 +260,7 @@ compute_overlaps (void *thread_data)
 }
 
 static void*
-activate_minicolumns (void *thread_data)
+minicolumn_inhibition (void *thread_data)
 {
     uint32_t x, y;
     struct thread_data *td = (struct thread_data *)thread_data;

@@ -70,11 +70,15 @@ struct minicolumn
 };
 
 #define RST_MC_SP_INDICATOR(mc) \
-    ( (mc)->active_mask <<= 2 )
+    ((mc)->active_mask <<= 2)
 /* bitwise AND of active and SP-process bits */
 #define MC_ACTIVE_AT(mc, t) \
     ( ( (mc)->active_mask & (1<<((t)+1)) ) && \
       ( (mc)->active_mask & 1 ) )
+#define MC_MARK_ACTIVE(mc) \
+    ((mc)->active_mask |= 3)
+#define MC_MARK_INACTIVE(mc) \
+    ((mc)->active_mask &= ~2)
 
 extern unsigned char
 mc_active_at (struct minicolumn *mc, uint32_t t);

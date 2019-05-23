@@ -37,7 +37,7 @@ void check_minicolumn_activation(
 {
     struct minicolumn **nptr = NULL;
     unsigned int num_higher = 0, num_active = 0;
-    unsigned int max_active;
+    unsigned int max_active, num_mcs;
     struct synapse *synptr = NULL;
     uint32_t s;
     /*v4sf */
@@ -66,15 +66,22 @@ void check_minicolumn_activation(
     DEBUG("%u neighbors are already active\n", num_active);
     /* compute maximum number of minicolumns that can be
     active, including this one */
-    max_active =
+    num_mcs = 
         (((uintptr_t)nptr-(uintptr_t)(mc->neighbors)) /
-        sizeof(struct minicolumn *) + 1) * local_activity;
+        sizeof(struct minicolumn *) + 1);
+    max_active = num_mcs * local_activity;
+    /* NOTE: requiring a minimum of 1 active minicolumn
+    causes local_activity to not be exactly honored,
+    because 1 minicolumn can be > local_activity for
+    small enough receptive fields. */
     if (max_active < 1) max_active = 1;
-    DEBUG("Max number of active minicolumns in radius: %u\n", max_active);
+    DEBUG("Max number of active minicolumns in radius: %u/%u\n", max_active, num_mcs);
     /* bitmask has been pre-shifted, so now just set the
     minicolumn activity and SP processed flag bits */
     if (num_active < max_active && num_higher < max_active) {
-        mc->active_mask |= 3;
+        DEBUG("Minicolumn activating, overlap: %u/%u, activity: %u/%u\n",
+            num_higher, max_active, num_active, max_active);
+        MC_MARK_ACTIVE(mc);
         /* modify synaptic permanence */
         synptr = mc->proximal_dendrite_segment;
         for (s=0; s<mc->num_synapses; s++) {
@@ -87,7 +94,7 @@ void check_minicolumn_activation(
     } else {
         DEBUG("minicolumn NOT active, Num active %u/%u, neighbor overlaps %u/%u\n",
             num_active, max_active, num_higher, max_active);
-        mc->active_mask |= 2;
+        MC_MARK_INACTIVE(mc);
     }
 }
 
